@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <map>
 #include <vector>
+#include <string>
 
 #define SMOL_BUFF 256
 #define BIG_BUFF 1024
@@ -25,13 +26,21 @@ enum FileFormat {
     JSON, TEX, MD, ODT, OPML, ORG, RST,
     ODF, PDF, DOCX, DOC, TXT,
 };
-const std::map<enum FileFormat, const char*> FORMAT_EXTENSIONS = {
+const std::map<enum FileFormat, std::string> FORMAT_EXTENSIONS = {
     {WEBM, "webm"}, {GIF, "gif"}, {MP4, "mp4"}, {MP3, "mp3"}, {OPUS, "opus"},
     {AVI, "avi"}, {MOV, "mov"}, {PNG, "png"}, {WEBP, "webp"}, {JPG, "jpg"},
     {JPEG, "jpeg"}, {SVG, "svg"}, {EPUB, "epub"}, {HTML, "html"}, {JSON, "json"},
     {TEX, "tex"}, {MD, "md"}, {ODT, "odt"}, {OPML, "opml"}, {ORG, "org"},
     {RST, "rst"}, {ODF, "odf"}, {PDF, "pdf"}, {DOCX, "docx"}, {DOC, "doc"},
     {TXT, "txt"},
+};
+const std::map<enum FileFormat, std::string> FORMAT_MIME_TYPES = {
+    {WEBM, "video/webm"}, {GIF, "image/gif"}, {MP4, "video/mp4"}, {MP3, "audio/mp3"}, {OPUS, "audio/opus"},
+    {AVI, "video/x-msvideo"}, {MOV, "video/quicktime"}, {PNG, "image/png"}, {WEBP, "image/webp"}, {JPG, "image/jpeg"},
+    {JPEG, "image/jpeg"}, {SVG, "image/svg+xml"}, {EPUB, "application/epub+zip"}, {HTML, "text/html"}, {JSON, "application/json"},
+    {TEX, "application/x-tex"}, {MD, "text/markdown"}, {ODT, "application/vnd.oasis.opendocument.text"}, {OPML, "text/xml"}, {ORG, "text/org"},
+    {RST, "text/rst"}, {PDF, "application/pdf"}, {DOCX, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, {DOC, "application/msword"},
+    {TXT, "text/plain"},
 };
 
 char *change_extension(const char* file, const char* new_extension, char* out)

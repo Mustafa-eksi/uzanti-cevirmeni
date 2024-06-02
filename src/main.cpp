@@ -4,6 +4,7 @@
 #include <gio/gasyncresult.h>
 #include <string.h>
 #include "backends/backend.hpp"
+#include "backends/ffmpeg.h"
 #include "cevir.cpp"
 
 GtkWidget *window;
@@ -92,7 +93,42 @@ void clicked(GtkWidget *widget, gpointer data)
 {
 	fd = gtk_file_dialog_new();
 	cancel = g_cancellable_new();
+	GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
 
+	GtkFileFilter *filter_all = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter_all, "*");
+	gtk_file_filter_set_name(filter_all, "All files");
+	g_list_store_append(gls, filter_all);
+
+	/* These are just mime types from https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+	 * I tried using suffixes and patterns but they don't work with KDE's file picker.
+	 */
+
+	GtkFileFilter *filter = gtk_file_filter_new();
+	for (const auto& [k, v] : IMAGEMAGICK_CONVERSIONS) {
+		if (FORMAT_MIME_TYPES.contains(k))
+			gtk_file_filter_add_mime_type(filter, FORMAT_MIME_TYPES.at(k).c_str());
+	}
+	gtk_file_filter_set_name(filter, "Image formats");
+	g_list_store_append(gls, filter);
+
+	GtkFileFilter *filter_video = gtk_file_filter_new();
+	for (const auto& [k, v] : FFMPEG_CONVERSIONS) {
+		if (FORMAT_MIME_TYPES.contains(k))
+			gtk_file_filter_add_mime_type(filter_video, FORMAT_MIME_TYPES.at(k).c_str());
+	}
+	gtk_file_filter_set_name(filter_video, "Audio/Video formats");
+	g_list_store_append(gls, filter_video);
+
+	GtkFileFilter *filter_doc = gtk_file_filter_new();
+	for (const auto& [k, v] : PANDOC_CONVERSIONS) {
+		if (FORMAT_MIME_TYPES.contains(k))
+			gtk_file_filter_add_mime_type(filter_doc, FORMAT_MIME_TYPES.at(k).c_str());
+	}
+	gtk_file_filter_set_name(filter_doc, "Document formats");
+	g_list_store_append(gls, filter_doc);
+
+	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(gls));
 	gtk_file_dialog_open(fd, GTK_WINDOW(window), cancel, async_callback, NULL);
 }
 
@@ -147,7 +183,6 @@ static void activate(GtkApplication *app, gpointer user_data)
 	gtk_button_set_label(GTK_BUTTON(sf_button), "Dosya seçin");
 	g_signal_connect(sf_button, "clicked", G_CALLBACK(clicked), NULL);
 	gtk_box_append(GTK_BOX(box), sf_button);
-
 
 	GtkWidget *box2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_widget_set_margin_top(box2, 20);

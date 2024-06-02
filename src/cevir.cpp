@@ -88,8 +88,8 @@ int get_converter_from_extension(const char *extension)
         if (strcmp(extension, FFMPEG_CONVERTABLE[i]) == 0)
             res |= FFMPEG;
     for (const auto& [key, val] : FORMAT_EXTENSIONS) {
-        if (strcmp((const char*)val, extension) != 0) continue;
-        printf("'%s' == '%s'\n", (const char*)val, extension);
+        if (strcmp(val.c_str(), extension) != 0) continue;
+        printf("'%s' == '%s'\n", val.c_str(), extension);
         if (LIBREOFFICE_CONVERSIONS.contains(key))
             res |= LIBREOFFICE;
         if (PANDOC_CONVERSIONS.contains(key))
@@ -117,5 +117,5 @@ char *get_extension(const char* file)
 void create_dropdown_list(std::vector<enum FileFormat> formats, char** out) {
     size_t ind = 0;
     for (auto f : formats)
-        out[ind++] = (char*) FORMAT_EXTENSIONS.find(f)->second;
+        out[ind++] = (char*) FORMAT_EXTENSIONS.find(f)->second.c_str();
 }
