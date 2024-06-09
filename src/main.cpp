@@ -3,6 +3,7 @@
 #include <gio/gcancellable.h>
 #include <gio/gasyncresult.h>
 #include <string.h>
+#include <stdio.h>
 #include "backends/backend.hpp"
 #include "backends/ffmpeg.h"
 #include "cevir.cpp"
@@ -18,6 +19,9 @@ GtkWidget *sf_button, *filepath_label;
 GtkAlertDialog* dialg;
 GtkWidget *filepath_view;
 
+#define DOSYA_SEC "Dosya seçin"
+#define DOSYA_DEGISTIR "Seçilen dosyaları değiştirin"
+
 void alert_clicked(GObject *source_object, GAsyncResult *res, gpointer data)
 {
 	GError *err;
@@ -30,6 +34,19 @@ void show_alert(const char* text, const char* detail) {
 	gtk_alert_dialog_set_buttons(dialg, (const char* const[]) {"Tamam", NULL});
 	cancel = g_cancellable_new();
 	gtk_alert_dialog_choose(dialg, GTK_WINDOW(window), cancel, alert_clicked, NULL);
+}
+
+void sync_paths() {
+	auto filepath_strlist = gtk_string_list_new(&paths[0]);
+	auto filepath_model = gtk_no_selection_new(G_LIST_MODEL(filepath_strlist));
+	gtk_list_view_set_model(GTK_LIST_VIEW(filepath_view), GTK_SELECTION_MODEL(filepath_model));
+}
+
+void no_files() {
+	gtk_widget_set_visible(filepath_view, false);
+	gtk_widget_set_visible(dd, false);
+	gtk_widget_set_visible(convert_button, false);
+	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_SEC);
 }
 
 void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
@@ -70,6 +87,7 @@ void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
 		create_dropdown_list(pandoc_all, buff);
 	} else {
 		show_alert("Seçilmiş hiçbir dosya için çevirmen program bulunamadı!", NULL);
+		no_files();
 		return;
 	}
 
@@ -77,12 +95,10 @@ void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
 	gtk_drop_down_set_model(GTK_DROP_DOWN(dd), G_LIST_MODEL(strlist));
 	gtk_widget_set_visible(dd, true);
 	gtk_widget_set_visible(convert_button, true);
-	gtk_button_set_label(GTK_BUTTON(sf_button), "Dosyayı değiştirin");
-	gtk_widget_set_visible(filepath_label, true);
+	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_DEGISTIR);
+	gtk_widget_set_visible(filepath_view, true);
+	sync_paths();
 
-	auto filepath_strlist = gtk_string_list_new(&paths[0]);
-	auto filepath_model = gtk_no_selection_new(G_LIST_MODEL(filepath_strlist));
-	gtk_list_view_set_model(GTK_LIST_VIEW(filepath_view), GTK_SELECTION_MODEL(filepath_model));
 	//free(ext);
 }
 
@@ -125,36 +141,36 @@ void clicked(GtkWidget *widget, gpointer data)
 	cancel = g_cancellable_new();
 	GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
 
-	GtkFileFilter *filter_all = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter_all, "*");
-	gtk_file_filter_set_name(filter_all, "All files");
-	g_list_store_append(gls, filter_all);
-
-	/* These are just mime types from https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
-	 * I tried using suffixes and patterns but they don't work with KDE's file picker.
-	 */
-
+	char filterbuff[BIG_BUFF*8] = {0};
+	size_t last_write = 0;
 	GtkFileFilter *filter = gtk_file_filter_new();
 	for (const auto& [k, v] : IMAGEMAGICK_CONVERSIONS) {
-		if (FORMAT_MIME_TYPES.contains(k))
-			gtk_file_filter_add_mime_type(filter, FORMAT_MIME_TYPES.at(k).c_str());
+		if (FORMAT_EXTENSIONS.contains(k))
+			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
+	gtk_file_filter_add_pattern(filter, filterbuff);
 	gtk_file_filter_set_name(filter, "Image formats");
 	g_list_store_append(gls, filter);
 
+	last_write = 0;
+	memset(filterbuff, 0, last_write);
 	GtkFileFilter *filter_video = gtk_file_filter_new();
 	for (const auto& [k, v] : FFMPEG_CONVERSIONS) {
-		if (FORMAT_MIME_TYPES.contains(k))
-			gtk_file_filter_add_mime_type(filter_video, FORMAT_MIME_TYPES.at(k).c_str());
+		if (FORMAT_EXTENSIONS.contains(k))
+			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
+	gtk_file_filter_add_pattern(filter_video, filterbuff);
 	gtk_file_filter_set_name(filter_video, "Audio/Video formats");
 	g_list_store_append(gls, filter_video);
 
+	last_write = 0;
+	memset(filterbuff, 0, last_write);
 	GtkFileFilter *filter_doc = gtk_file_filter_new();
 	for (const auto& [k, v] : PANDOC_CONVERSIONS) {
-		if (FORMAT_MIME_TYPES.contains(k))
-			gtk_file_filter_add_mime_type(filter_doc, FORMAT_MIME_TYPES.at(k).c_str());
+		if (FORMAT_EXTENSIONS.contains(k))
+			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
+	gtk_file_filter_add_pattern(filter_doc, filterbuff);
 	gtk_file_filter_set_name(filter_doc, "Document formats");
 	g_list_store_append(gls, filter_doc);
 
@@ -184,12 +200,50 @@ void dd_bind(GtkSignalListItemFactory* self, GObject* object, gpointer user_data
 	gtk_label_set_text(GTK_LABEL(lb), str);
 }
 
-void dd_unbind(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
-
+void filelist_setup(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
+	GtkWidget *bx = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	GtkWidget *lb = gtk_label_new(NULL);
+	GtkWidget *bt = gtk_button_new();
+	gtk_widget_set_halign(bt, GTK_ALIGN_END);
+	gtk_widget_set_hexpand(bt, GTK_ALIGN_END);
+	gtk_button_set_icon_name(GTK_BUTTON(bt), "delete");
+	GtkListItem *li = GTK_LIST_ITEM(object);
+	if (!li) {
+		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		return;
+	}
+	gtk_box_append(GTK_BOX(bx), lb);
+	gtk_box_append(GTK_BOX(bx), bt);
+	gtk_list_item_set_child(li, bx);
 }
 
-void dd_teardown(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
 
+
+void remove_file(GtkWidget *widget, gpointer data) {
+	GtkListItem *li = GTK_LIST_ITEM(data);
+	guint p = gtk_list_item_get_position(li);
+	paths.erase(paths.begin() + p);
+	printf("sayi: %d\n", paths.size());
+	if (paths.size() <= 1) // there's NULL too
+		no_files();
+	else
+		sync_paths();
+}
+
+void filelist_bind(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
+	GtkListItem *li = GTK_LIST_ITEM(object);
+	if (!li) {
+		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		return;
+	}
+	GtkWidget *bx = gtk_list_item_get_child(li);
+	GtkWidget *lb = gtk_widget_get_first_child(bx);
+	GtkWidget *bt = gtk_widget_get_last_child(bx);
+	g_signal_connect(bt, "clicked", G_CALLBACK(remove_file), li);
+
+	GtkStringObject *strobj = GTK_STRING_OBJECT(gtk_list_item_get_item(li));
+	const char *str = gtk_string_object_get_string(strobj);
+	gtk_label_set_text(GTK_LABEL(lb), str);
 }
 
 static void activate(GtkApplication *app, gpointer user_data)
@@ -205,8 +259,8 @@ static void activate(GtkApplication *app, gpointer user_data)
 	/*auto filepath_strlist = gtk_string_list_new(&paths[0]);
 	auto filepath_model = gtk_single_selection_new(G_LIST_MODEL(filepath_strlist));*/
 	auto filepath_factory = gtk_signal_list_item_factory_new();
-	g_signal_connect(filepath_factory, "setup", G_CALLBACK(dd_setup), NULL);
-	g_signal_connect(filepath_factory, "bind", G_CALLBACK(dd_bind), NULL);
+	g_signal_connect(filepath_factory, "setup", G_CALLBACK(filelist_setup), NULL);
+	g_signal_connect(filepath_factory, "bind", G_CALLBACK(filelist_bind), NULL);
 	filepath_view = gtk_list_view_new(NULL, filepath_factory);
 	gtk_box_append(GTK_BOX(box), filepath_view);
 
@@ -214,7 +268,7 @@ static void activate(GtkApplication *app, gpointer user_data)
 	gtk_widget_set_valign(sf_button, GTK_ALIGN_CENTER);
 	gtk_widget_set_halign(sf_button, GTK_ALIGN_CENTER);
 
-	gtk_button_set_label(GTK_BUTTON(sf_button), "Dosya seçin");
+	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_SEC);
 	g_signal_connect(sf_button, "clicked", G_CALLBACK(clicked), NULL);
 	gtk_box_append(GTK_BOX(box), sf_button);
 
@@ -225,8 +279,6 @@ static void activate(GtkApplication *app, gpointer user_data)
 	GtkListItemFactory *gslif = gtk_signal_list_item_factory_new();
 	g_signal_connect(gslif, "setup", G_CALLBACK(dd_setup), NULL);
 	g_signal_connect(gslif, "bind", G_CALLBACK(dd_bind), NULL);
-	g_signal_connect(gslif, "unbind", G_CALLBACK(dd_unbind), NULL);
-	g_signal_connect(gslif, "teardown", G_CALLBACK(dd_teardown), NULL);
 	gtk_widget_set_visible(dd, false);
 	gtk_box_append(GTK_BOX(box2), dd);
 

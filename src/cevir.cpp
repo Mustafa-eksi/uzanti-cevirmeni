@@ -81,12 +81,6 @@ enum Result convert_helper(const char *file, const char *extension, enum Convert
 int get_converter_from_extension(const char *extension)
 {
     int res = UNSUPPORTED;
-    for (size_t i = 0; i < IMC_COUNT - 1; i++)
-        if (strcmp(extension, IMAGEMAGICK_CONVERTABLE[i]) == 0)
-            res |= IMAGEMAGICK;
-    for (size_t i = 0; i < FFMPEG_COUNT - 1; i++)
-        if (strcmp(extension, FFMPEG_CONVERTABLE[i]) == 0)
-            res |= FFMPEG;
     for (const auto& [key, val] : FORMAT_EXTENSIONS) {
         if (strcmp(val.c_str(), extension) != 0) continue;
         printf("'%s' == '%s'\n", val.c_str(), extension);
