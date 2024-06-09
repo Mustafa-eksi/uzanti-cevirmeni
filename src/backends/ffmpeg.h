@@ -20,3 +20,5 @@ const std::map<enum FileFormat, std::vector<enum FileFormat>> FFMPEG_CONVERSIONS
 };
 
 enum Result ffmpeg_convert_single(const char* in_path, const char* out_path, struct FfmpegSettings settings);
+void ffmpeg_set_settings_widget(GtkWidget* box);
+struct FfmpegSettings ffmpeg_get_settings(GtkWidget* box);

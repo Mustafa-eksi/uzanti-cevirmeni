@@ -28,3 +28,11 @@ enum Result imagemagick_convert_single(const char* in_path, const char* out_path
     pclose(im_pipe);
     return res;
 }
+
+void imagemagick_set_settings_widget(GtkWidget* box) {
+
+}
+
+struct ImageMagickSettings imagemagick_get_settings(GtkWidget* box) {
+
+}

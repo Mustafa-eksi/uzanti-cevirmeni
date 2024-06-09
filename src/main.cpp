@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "backends/backend.hpp"
 #include "backends/ffmpeg.h"
+#include "backends/pandoc.h"
 #include "cevir.cpp"
 
 GtkWidget *window;
@@ -18,7 +19,9 @@ enum ConverterProgram cp;
 GtkWidget *sf_button, *filepath_label;
 GtkAlertDialog* dialg;
 GtkWidget *filepath_view;
-
+GtkWidget *box2;
+GtkWidget *settingsw;
+GtkWidget* expander;
 #define DOSYA_SEC "Dosya seçin"
 #define DOSYA_DEGISTIR "Seçilen dosyaları değiştirin"
 
@@ -44,9 +47,10 @@ void sync_paths() {
 
 void no_files() {
 	gtk_widget_set_visible(filepath_view, false);
-	gtk_widget_set_visible(dd, false);
+	//gtk_widget_set_visible(dd, false);
 	gtk_widget_set_visible(convert_button, false);
 	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_SEC);
+	gtk_widget_set_visible(box2, false);
 }
 
 void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
@@ -77,14 +81,22 @@ void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
 			continue;
 	}
 	paths.push_back(NULL);
+	GtkWidget *first_c = gtk_widget_get_first_child(settingsw);
+	while (first_c != NULL) {
+		gtk_box_remove(GTK_BOX(settingsw), first_c);
+		first_c = gtk_widget_get_first_child(settingsw);
+	}
 	if ((cp & IMAGEMAGICK) != 0) {
 		create_dropdown_list(imagemagick_all, buff);
+		imagemagick_set_settings_widget(settingsw);
 	} else if ((cp & FFMPEG) != 0) {
 		create_dropdown_list(ffmpeg_all, buff);
+		ffmpeg_set_settings_widget(settingsw);
 	} /*else if((cp & LIBREOFFICE) != 0) { // Disabled due to instability
 		create_dropdown_list(libreoffice_all, buff);
 	}*/ else if ((cp & PANDOC) != 0) {
 		create_dropdown_list(pandoc_all, buff);
+		pandoc_set_settings_widget(settingsw);
 	} else {
 		show_alert("Seçilmiş hiçbir dosya için çevirmen program bulunamadı!", NULL);
 		no_files();
@@ -93,7 +105,7 @@ void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
 
 	strlist = gtk_string_list_new(buff);
 	gtk_drop_down_set_model(GTK_DROP_DOWN(dd), G_LIST_MODEL(strlist));
-	gtk_widget_set_visible(dd, true);
+	gtk_widget_set_visible(box2, true);
 	gtk_widget_set_visible(convert_button, true);
 	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_DEGISTIR);
 	gtk_widget_set_visible(filepath_view, true);
@@ -123,7 +135,7 @@ void convert_clicked(GtkWidget *widget, gpointer data)
 	for (const auto& path : paths) {
 		if (!path)
 			continue;
-		auto r = convert_helper(path, ext, cp);
+		auto r = convert_helper(path, ext, cp, settingsw);
 		if (res == SUCCESS)
 			res = r;
 		printf("converted: %s\n", path);
@@ -272,15 +284,25 @@ static void activate(GtkApplication *app, gpointer user_data)
 	g_signal_connect(sf_button, "clicked", G_CALLBACK(clicked), NULL);
 	gtk_box_append(GTK_BOX(box), sf_button);
 
-	GtkWidget *box2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	box2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_widget_set_margin_top(box2, 20);
 	gtk_widget_set_halign(box2, GTK_ALIGN_CENTER);
+	gtk_widget_set_visible(box2, false);
+	GtkWidget *box3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	gtk_widget_set_halign(box3, GTK_ALIGN_CENTER);
 	dd = gtk_drop_down_new(NULL, NULL);
 	GtkListItemFactory *gslif = gtk_signal_list_item_factory_new();
 	g_signal_connect(gslif, "setup", G_CALLBACK(dd_setup), NULL);
 	g_signal_connect(gslif, "bind", G_CALLBACK(dd_bind), NULL);
-	gtk_widget_set_visible(dd, false);
-	gtk_box_append(GTK_BOX(box2), dd);
+	GtkWidget *ddlb = gtk_label_new("Çıktı uzantısı:");
+	gtk_box_append(GTK_BOX(box3), ddlb);
+	gtk_box_append(GTK_BOX(box3), dd);
+	gtk_box_append(GTK_BOX(box2), box3);
+
+	expander = gtk_expander_new("Daha fazla ayar");
+	settingsw = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
+	gtk_box_append(GTK_BOX(box2), expander);
 
 	convert_button = gtk_button_new();
 	gtk_widget_set_visible(convert_button, false);

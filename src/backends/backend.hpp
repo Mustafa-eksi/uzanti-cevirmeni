@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 #include <string>
-
+#include <gtk/gtk.h>
 #define SMOL_BUFF 256
 #define BIG_BUFF 1024
 

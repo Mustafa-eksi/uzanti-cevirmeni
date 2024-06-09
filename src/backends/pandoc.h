@@ -34,3 +34,5 @@ const char* PANDOC_OUTPUT[PANDOC_OUTPUT_COUNT] = {
 };*/
 
 enum Result pandoc_convert_single(const char* in_path, const char* out_path, struct PandocSettings settings);
+void pandoc_set_settings_widget(GtkWidget* box);
+struct PandocSettings pandoc_get_settings(GtkWidget* box);

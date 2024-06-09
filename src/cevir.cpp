@@ -43,7 +43,7 @@ enum Result check_available(enum ConverterProgram *inout) {
     return EXECUTABLE_NOT_FOUND;
 }
 
-enum Result convert_helper(const char *file, const char *extension, enum ConverterProgram cp)
+enum Result convert_helper(const char *file, const char *extension, enum ConverterProgram cp, GtkWidget* settingsw)
 {
     enum Result r = EXECUTABLE_NOT_FOUND;
     enum ConverterProgram use_this = cp;
@@ -65,11 +65,11 @@ enum Result convert_helper(const char *file, const char *extension, enum Convert
     strncpy(output_folder, file, slash_pos);*/
 
     if (use_this == IMAGEMAGICK)
-        r = imagemagick_convert_single(file, output_path, (struct ImageMagickSettings){0});
+        r = imagemagick_convert_single(file, output_path, imagemagick_get_settings(settingsw));
     else if (use_this == FFMPEG)
-        r = ffmpeg_convert_single(file, output_path, (struct FfmpegSettings){0});
+        r = ffmpeg_convert_single(file, output_path, ffmpeg_get_settings(settingsw));
     else if (use_this == PANDOC)
-        r = pandoc_convert_single(file, output_path, (struct PandocSettings){.hard_line_breaks = true}); // For testing
+        r = pandoc_convert_single(file, output_path, pandoc_get_settings(settingsw)); // For testing
     else if (use_this == LIBREOFFICE)
         r = libreoffice_convert_single(file, "/home/mustafa/Desktop", extension, (struct LibreofficeSettings) {});
 

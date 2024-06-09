@@ -22,3 +22,5 @@ const std::map<enum FileFormat, std::vector<enum FileFormat>> IMAGEMAGICK_CONVER
 };
 
 enum Result imagemagick_convert_single(const char* in_path, const char* out_path, struct ImageMagickSettings settings);
+void imagemagick_set_settings_widget(GtkWidget* box);
+struct ImageMagickSettings imagemagick_get_settings(GtkWidget* box);
