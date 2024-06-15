@@ -34,5 +34,5 @@ void imagemagick_set_settings_widget(GtkWidget* box) {
 }
 
 struct ImageMagickSettings imagemagick_get_settings(GtkWidget* box) {
-
+    return (struct ImageMagickSettings) {};
 }

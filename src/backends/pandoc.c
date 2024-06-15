@@ -6,7 +6,7 @@ void pandoc_parse_settings(char* buffer, size_t buffer_size, struct PandocSettin
     //printf("\"%s\"\n", buffer);
     size_t last_line = 0;
     if (settings.hard_line_breaks) {
-        last_line = sprintf(buffer, " --wrap=preserve ");
+        last_line += sprintf(buffer+last_line, " --wrap=preserve ");
     }
     (void) last_line;
     //printf("\"%s\"\n", buffer);

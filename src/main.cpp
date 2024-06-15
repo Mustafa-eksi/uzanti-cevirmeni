@@ -22,14 +22,17 @@ GtkWidget *filepath_view;
 GtkWidget *box2;
 GtkWidget *settingsw;
 GtkWidget* expander;
+
+char* output_folder_path;
+GtkFileDialog *output_fd;
+
 #define DOSYA_SEC "Dosya seçin"
 #define DOSYA_DEGISTIR "Seçilen dosyaları değiştirin"
 
 void alert_clicked(GObject *source_object, GAsyncResult *res, gpointer data)
 {
 	GError *err;
-	int click = gtk_alert_dialog_choose_finish(dialg, res, &err);
-	printf("Alert clicked! %d\n", click);
+	gtk_alert_dialog_choose_finish(dialg, res, &err);
 }
 
 void show_alert(const char* text, const char* detail) {
@@ -135,10 +138,10 @@ void convert_clicked(GtkWidget *widget, gpointer data)
 	for (const auto& path : paths) {
 		if (!path)
 			continue;
-		auto r = convert_helper(path, ext, cp, settingsw);
+		auto r = convert_helper(path, ext, output_folder_path, cp, settingsw);
 		if (res == SUCCESS)
 			res = r;
-		printf("converted: %s\n", path);
+		//printf("converted: %s\n", path);
 	}
 	if (res == SUCCESS) {
 		show_alert("Bütün dosyalar başarıyla çevrildi!", NULL);
@@ -229,13 +232,10 @@ void filelist_setup(GtkSignalListItemFactory* self, GObject* object, gpointer us
 	gtk_list_item_set_child(li, bx);
 }
 
-
-
 void remove_file(GtkWidget *widget, gpointer data) {
 	GtkListItem *li = GTK_LIST_ITEM(data);
 	guint p = gtk_list_item_get_position(li);
 	paths.erase(paths.begin() + p);
-	printf("sayi: %d\n", paths.size());
 	if (paths.size() <= 1) // there's NULL too
 		no_files();
 	else
@@ -256,6 +256,20 @@ void filelist_bind(GtkSignalListItemFactory* self, GObject* object, gpointer use
 	GtkStringObject *strobj = GTK_STRING_OBJECT(gtk_list_item_get_item(li));
 	const char *str = gtk_string_object_get_string(strobj);
 	gtk_label_set_text(GTK_LABEL(lb), str);
+}
+
+void output_folder_async(GObject *source_object, GAsyncResult *res, gpointer data) {
+	GError *err;
+	auto folder = gtk_file_dialog_select_folder_finish(output_fd, res, &err);
+	if (folder) {
+		output_folder_path = g_file_get_path(folder);
+		//printf("path: %s\n", output_folder_path);
+	}
+}
+
+void output_folder_clicked(GtkWidget *widget, gpointer data) {
+	output_fd = gtk_file_dialog_new();
+	gtk_file_dialog_select_folder(output_fd, GTK_WINDOW(window), cancel, output_folder_async, NULL);
 }
 
 static void activate(GtkApplication *app, gpointer user_data)
@@ -303,6 +317,11 @@ static void activate(GtkApplication *app, gpointer user_data)
 	settingsw = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
 	gtk_box_append(GTK_BOX(box2), expander);
+
+	GtkWidget *output_folder_button = gtk_button_new();
+	gtk_button_set_label(GTK_BUTTON(output_folder_button), "Çıktı klasörü seçin");
+	g_signal_connect(output_folder_button, "clicked", G_CALLBACK(output_folder_clicked), NULL);
+	gtk_box_append(GTK_BOX(box2), output_folder_button);
 
 	convert_button = gtk_button_new();
 	gtk_widget_set_visible(convert_button, false);
