@@ -12,8 +12,12 @@ install:
 	install -d $(LOCALE_DIR)/tr/LC_MESSAGES
 	install translations/tr.mo $(LOCALE_DIR)/tr/LC_MESSAGES/uzanti-cevirmeni.mo
 
+uninstall:
+	rm $(DESTDIR)$(prefix)/bin/uzanti-cevirmeni
+	rm $(LOCALE_DIR)/tr/LC_MESSAGES/uzanti-cevirmeni.mo
+
 generate_pot: src/*
-	xgettext --from-code=UTF-8 --add-comments --keyword=_ --keyword=C_:1c,2 -c++ ./src/main.cpp -o ./translations/uzanti-cevirmeni.pot
+	xgettext --from-code=UTF-8 --add-comments --keyword=_ --keyword=C_:1c,2 -c++ ./src/main.cpp ./src/backends/* -o ./translations/uzanti-cevirmeni.pot
 
 update_pos: translations/uzanti-cevirmeni.pot
 	msgmerge -o translations/tr.po translations/tr.po translations/uzanti-cevirmeni.pot

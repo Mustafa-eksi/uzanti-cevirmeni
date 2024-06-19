@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-19 19:10+0300\n"
+"POT-Creation-Date: 2024-06-19 20:26+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Mustafa Ekşi <mustafa.eskieksiL@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -101,3 +101,11 @@ msgstr "Gelişmiş ayarlar"
 #: src/main.cpp:340
 msgid "Convert!"
 msgstr "Çevir!"
+
+#: src/backends/ffmpeg.c:32
+msgid "Framerate:"
+msgstr "Kare sayısı:"
+
+#: src/backends/pandoc.c:43
+msgid "Preserve wraps"
+msgstr "Yeni satırları koru"

@@ -351,7 +351,11 @@ int main(int argc, char **argv)
 	GtkApplication *app;
 	int status;
 
-	app = gtk_application_new("io.meksi.uzanti_cevirici", G_APPLICATION_HANDLES_OPEN);
+	setlocale(LC_ALL,"");
+	bindtextdomain("uzanti-cevirmeni","/usr/share/locale");
+	textdomain("uzanti-cevirmeni");
+
+	app = gtk_application_new("me.mustafaeksi.uzanti-cevirmeni", G_APPLICATION_HANDLES_OPEN);
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
 	//status = g_application_run_with_args(G_APPLICATION(app), argc, argv);
 	status = g_application_run(G_APPLICATION(app), 1, argv);
