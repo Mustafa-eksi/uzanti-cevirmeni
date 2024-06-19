@@ -12,10 +12,10 @@
 #define SMOL_BUFF 256
 #define BIG_BUFF 1024
 
-#define _(String) (String)
-#define N_(String) String
-#define textdomain(Domain)
-#define bindtextdomain(Package, Directory)
+#include <libintl.h>
+#define _(String) gettext (String)
+#define gettext_noop(String) String
+#define N_(String) gettext_noop (String)
 
 enum Result {
     SUCCESS,

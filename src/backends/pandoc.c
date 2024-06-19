@@ -40,7 +40,7 @@ enum Result pandoc_convert_single(const char* in_path, const char* out_path, str
 void pandoc_set_settings_widget(GtkWidget* box) {
     GtkWidget* wrap = gtk_check_button_new();
     gtk_check_button_set_active(GTK_CHECK_BUTTON(wrap), true);
-    gtk_check_button_set_label(GTK_CHECK_BUTTON(wrap), "Yeni satırları koru");
+    gtk_check_button_set_label(GTK_CHECK_BUTTON(wrap), _("Preserve wraps")); // Yeni satırları koru
     gtk_box_append(GTK_BOX(box), wrap);
 }
 

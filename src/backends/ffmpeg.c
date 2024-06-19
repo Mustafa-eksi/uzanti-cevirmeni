@@ -29,7 +29,7 @@ enum Result ffmpeg_convert_single(const char* in_path, const char* out_path, str
 
 void ffmpeg_set_settings_widget(GtkWidget* box) {
     GtkWidget *bx = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    GtkWidget *lb = gtk_label_new("Kare sayısı:");
+    GtkWidget *lb = gtk_label_new(_("Framerate:")); // Kare sayısı:
     GtkWidget *entry = gtk_spin_button_new_with_range(0, 10000, 5);
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry), 60);
     gtk_box_append(GTK_BOX(bx), lb);

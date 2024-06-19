@@ -26,8 +26,8 @@ GtkWidget* expander;
 char* output_folder_path;
 GtkWidget *output_fd;
 
-#define DOSYA_SEC "Dosya seçin"
-#define DOSYA_DEGISTIR "Seçilen dosyaları değiştirin"
+#define DOSYA_SEC _("Select file")
+#define DOSYA_DEGISTIR _("Change selected files")
 
 void alert_clicked(GtkDialog* self, gint response_id, gpointer user_data)
 {
@@ -102,7 +102,7 @@ void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 		create_dropdown_list(pandoc_all, buff);
 		pandoc_set_settings_widget(settingsw);
 	} else {
-		show_alert("Seçilmiş hiçbir dosya için çevirmen program bulunamadı!", NULL);
+		show_alert(_("Couldn't find any converter program for given files!"), NULL); // ""
 		no_files();
 		return;
 	}
@@ -120,12 +120,12 @@ void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 
 const char* result_to_str(enum Result r) {
 	switch(r) {
-		case SUCCESS: return "Başarılı";
-		case UNKNOWN_ERROR: return "Bilinmeyen hata";
-		case EXECUTABLE_NOT_FOUND: return "Çalıştırılabilir dosya bulunamadı";
-		case NOT_ENOUGH_MEMORY: return "Yetersiz hafıza";
-		case FILE_NOT_FOUND: return "Dosya bulunamadı";
-		default: return "Bilinmeyen hata";
+		case SUCCESS: return _("Successful"); // Başarılı
+		case UNKNOWN_ERROR: return _("Unknown error"); // Bilinmeyen hata
+		case EXECUTABLE_NOT_FOUND: return _("Couldn't find the executable file"); // Çalıştırılabilir dosya bulunamadı
+		case NOT_ENOUGH_MEMORY: return _("Not enough memory"); // Yetersiz hafıza
+		case FILE_NOT_FOUND: return _("Couldn't find the file"); // Dosya bulunamadı
+		default: return _("Unknown error"); // Bilinmeyen hata
 	}
 }
 
@@ -145,15 +145,15 @@ void convert_clicked(GtkWidget *widget, gpointer data)
 		//printf("converted: %s\n", path);
 	}
 	if (res == SUCCESS) {
-		show_alert("Bütün dosyalar başarıyla çevrildi!", NULL);
+		show_alert(_("All files converted successfully"), NULL); // Bütün dosyalar başarıyla çevrildi!
 	} else {
-		show_alert("Bazı dosyaların çevrimi başarısız oldu!: %s", result_to_str(res));
+		show_alert(_("Conversions of some files had failed: %s"), result_to_str(res)); // Bazı dosyaların çevrimi başarısız oldu!: %s
 	}
 }
 
 void clicked(GtkWidget *widget, gpointer data)
 {
-	fd = gtk_file_chooser_dialog_new(_(""), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("Open"), "", (char*)NULL);
+	fd = gtk_file_chooser_dialog_new(_("Open file"), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("Open"), "", (char*)NULL);
 	// GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
 
 	char filterbuff[BIG_BUFF*8] = {0};
@@ -166,7 +166,7 @@ void clicked(GtkWidget *widget, gpointer data)
 			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
 	//gtk_file_filter_add_pattern(filter, filterbuff);
-	gtk_file_filter_set_name(filter, "Image formats");
+	gtk_file_filter_set_name(filter, _("Image formats"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter);
 	// g_list_store_append(gls, filter);
 
@@ -179,7 +179,7 @@ void clicked(GtkWidget *widget, gpointer data)
 			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
 	//gtk_file_filter_add_pattern(filter_video, filterbuff);
-	gtk_file_filter_set_name(filter_video, "Audio/Video formats");
+	gtk_file_filter_set_name(filter_video, _("Audio/Video formats"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter_video);
 	//g_list_store_append(gls, filter_video);
 
@@ -192,7 +192,7 @@ void clicked(GtkWidget *widget, gpointer data)
 			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
 	//gtk_file_filter_add_pattern(filter_doc, filterbuff);
-	gtk_file_filter_set_name(filter_doc, "Document formats");
+	gtk_file_filter_set_name(filter_doc, _("Document formats"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter_doc);
 	// g_list_store_append(gls, filter_doc);
 
@@ -206,7 +206,7 @@ void dd_setup(GtkSignalListItemFactory* self, GObject* object, gpointer user_dat
 	GtkWidget *lb = gtk_label_new(NULL);
 	GtkListItem *li = GTK_LIST_ITEM(object);
 	if (!li) {
-		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		show_alert(_("An unknown error has occurred"), NULL); // Bilinmeyen bir hata oluştu!
 		return;
 	}
 	gtk_list_item_set_child(li, lb);
@@ -215,7 +215,7 @@ void dd_setup(GtkSignalListItemFactory* self, GObject* object, gpointer user_dat
 void dd_bind(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
 	GtkListItem *li = GTK_LIST_ITEM(object);
 	if (!li) {
-		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		show_alert(_("An unknown error has occurred"), NULL);
 		return;
 	}
 	GtkWidget *lb = gtk_list_item_get_child(li);
@@ -233,7 +233,7 @@ void filelist_setup(GtkSignalListItemFactory* self, GObject* object, gpointer us
 	gtk_button_set_icon_name(GTK_BUTTON(bt), "delete");
 	GtkListItem *li = GTK_LIST_ITEM(object);
 	if (!li) {
-		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		show_alert(_("An unknown error has occurred"), NULL);
 		return;
 	}
 	gtk_box_append(GTK_BOX(bx), lb);
@@ -254,7 +254,7 @@ void remove_file(GtkWidget *widget, gpointer data) {
 void filelist_bind(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
 	GtkListItem *li = GTK_LIST_ITEM(object);
 	if (!li) {
-		show_alert("Bilinmeyen bir hata oluştu!", NULL);
+		show_alert(_("An unknown error has occurred"), NULL);
 		return;
 	}
 	GtkWidget *bx = gtk_list_item_get_child(li);
@@ -272,13 +272,12 @@ void output_folder_async(GtkDialog* self, gint response_id, gpointer user_data) 
 	auto folder = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(output_fd));
 	if (folder) {
 		output_folder_path = g_file_get_path(folder);
-		printf("path: %s\n", output_folder_path);
 		gtk_window_close(GTK_WINDOW(self));
 	}
 }
 
 void output_folder_clicked(GtkWidget *widget, gpointer data) {
-	output_fd = gtk_file_chooser_dialog_new(_(""), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("Select"), "", (char*)NULL);
+	output_fd = gtk_file_chooser_dialog_new(_("Select output directory"), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("Select"), "", (char*)NULL);
 	g_signal_connect(output_fd, "response", G_CALLBACK(output_folder_async), NULL);
 	gtk_window_present(GTK_WINDOW(output_fd));
 	// output_fd = gtk_file_dialog_new();
@@ -321,24 +320,24 @@ static void activate(GtkApplication *app, gpointer user_data)
 	GtkListItemFactory *gslif = gtk_signal_list_item_factory_new();
 	g_signal_connect(gslif, "setup", G_CALLBACK(dd_setup), NULL);
 	g_signal_connect(gslif, "bind", G_CALLBACK(dd_bind), NULL);
-	GtkWidget *ddlb = gtk_label_new("Çıktı uzantısı:");
+	GtkWidget *ddlb = gtk_label_new(_("Output format:")); // Çıktı uzantısı:
 	gtk_box_append(GTK_BOX(box3), ddlb);
 	gtk_box_append(GTK_BOX(box3), dd);
 	gtk_box_append(GTK_BOX(box2), box3);
 
-	expander = gtk_expander_new("Daha fazla ayar");
+	expander = gtk_expander_new(_("Advanced settings")); // Daha fazla ayar
 	settingsw = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
 	gtk_box_append(GTK_BOX(box2), expander);
 
 	GtkWidget *output_folder_button = gtk_button_new();
-	gtk_button_set_label(GTK_BUTTON(output_folder_button), "Çıktı klasörü seçin");
+	gtk_button_set_label(GTK_BUTTON(output_folder_button), _("Select output directory")); // Çıktı klasörü seçin
 	g_signal_connect(output_folder_button, "clicked", G_CALLBACK(output_folder_clicked), NULL);
 	gtk_box_append(GTK_BOX(box2), output_folder_button);
 
 	convert_button = gtk_button_new();
 	gtk_widget_set_visible(convert_button, false);
-	gtk_button_set_label(GTK_BUTTON(convert_button), "Çevir!");
+	gtk_button_set_label(GTK_BUTTON(convert_button), _("Convert!"));
 	g_signal_connect(convert_button, "clicked", G_CALLBACK(convert_clicked), NULL);
 	gtk_box_append(GTK_BOX(box2), convert_button);
 
