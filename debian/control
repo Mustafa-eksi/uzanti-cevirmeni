@@ -8,6 +8,6 @@ Build-Depends: debhelper-compat (= 13), g++, libgtk-4-dev (<<4.10), gettext
 Package: uzanti-cevirmeni
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: pandoc, ffmpeg, imagemagick
+Recommends: pandoc, ffmpeg, imagemagick, pdflatex | lualatex | xelatex
 Description: Provides gui for some file conversion
  programs.
