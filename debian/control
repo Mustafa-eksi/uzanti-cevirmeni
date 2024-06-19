@@ -1,0 +1,13 @@
+Source: uzanti-cevirmeni
+Maintainer: Mustafa Ekşi <mustafa.eskieksi@gmail.com>
+Section: misc
+Priority: optional
+Standards-Version: 4.6.2
+Build-Depends: debhelper-compat (= 13), g++, libgtk-4-dev (<<4.10), gettext
+
+Package: uzanti-cevirmeni
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: pandoc, ffmpeg, imagemagick
+Description: Provides gui for some file conversion
+ programs.

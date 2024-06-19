@@ -15,7 +15,7 @@ enum ConverterProgram {
 
 const std::map<enum ConverterProgram, const char*> EXECUTABLE_NAMES = {
     {FFMPEG, "ffmpeg"},
-    {IMAGEMAGICK, "magick"},
+    {IMAGEMAGICK, "convert"},
     {PANDOC, "pandoc"},
     {LIBREOFFICE, "libreoffice"},
 };

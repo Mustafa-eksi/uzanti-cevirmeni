@@ -10,36 +10,35 @@
 #include "cevir.cpp"
 
 GtkWidget *window;
-GtkFileDialog *fd;
+GtkWidget *fd;
 GCancellable *cancel;
 GtkWidget *dd;
 GtkWidget *convert_button;
 std::vector<char*> paths;
 enum ConverterProgram cp;
 GtkWidget *sf_button, *filepath_label;
-GtkAlertDialog* dialg;
+GtkWidget* dialg;
 GtkWidget *filepath_view;
 GtkWidget *box2;
 GtkWidget *settingsw;
 GtkWidget* expander;
 
 char* output_folder_path;
-GtkFileDialog *output_fd;
+GtkWidget *output_fd;
 
 #define DOSYA_SEC "Dosya seçin"
 #define DOSYA_DEGISTIR "Seçilen dosyaları değiştirin"
 
-void alert_clicked(GObject *source_object, GAsyncResult *res, gpointer data)
+void alert_clicked(GtkDialog* self, gint response_id, gpointer user_data)
 {
-	GError *err;
-	gtk_alert_dialog_choose_finish(dialg, res, &err);
+	if (response_id == -4) return; // close response
+	gtk_window_close(GTK_WINDOW(self));
 }
 
 void show_alert(const char* text, const char* detail) {
-	dialg = gtk_alert_dialog_new(text, detail);
-	gtk_alert_dialog_set_buttons(dialg, (const char* const[]) {"Tamam", NULL});
-	cancel = g_cancellable_new();
-	gtk_alert_dialog_choose(dialg, GTK_WINDOW(window), cancel, alert_clicked, NULL);
+	dialg = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, text, detail);
+	g_signal_connect(dialg, "response", G_CALLBACK(alert_clicked), NULL);
+	gtk_window_present(GTK_WINDOW(dialg));
 }
 
 void sync_paths() {
@@ -56,14 +55,16 @@ void no_files() {
 	gtk_widget_set_visible(box2, false);
 }
 
-void async_callback(GObject *source_object, GAsyncResult *res, gpointer data)
+void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 {
+	if (response_id == -4) return;
 	char* buff[BIG_BUFF] = {};
 	GtkStringList *strlist;
-	GError *err;
 
-	auto files = gtk_file_dialog_open_multiple_finish(fd, res, &err);
+	// auto files = gtk_file_dialog_open_multiple_finish(fd, res, &err);
+	auto files = gtk_file_chooser_get_files(GTK_FILE_CHOOSER(fd));
 	auto count = g_list_model_get_n_items(files);
+	gtk_window_close(GTK_WINDOW(self));
 
 	paths.clear();
 	cp = UNSUPPORTED;
@@ -152,45 +153,53 @@ void convert_clicked(GtkWidget *widget, gpointer data)
 
 void clicked(GtkWidget *widget, gpointer data)
 {
-	fd = gtk_file_dialog_new();
-	cancel = g_cancellable_new();
-	GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
+	fd = gtk_file_chooser_dialog_new(_(""), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("Open"), "", (char*)NULL);
+	// GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
 
 	char filterbuff[BIG_BUFF*8] = {0};
 	size_t last_write = 0;
 	GtkFileFilter *filter = gtk_file_filter_new();
 	for (const auto& [k, v] : IMAGEMAGICK_CONVERSIONS) {
-		if (FORMAT_EXTENSIONS.contains(k))
-			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
+		if (FORMAT_EXTENSIONS.contains(k)) {
+			gtk_file_filter_add_suffix(filter, FORMAT_EXTENSIONS.at(k).c_str());
+		}
+			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
-	gtk_file_filter_add_pattern(filter, filterbuff);
+	//gtk_file_filter_add_pattern(filter, filterbuff);
 	gtk_file_filter_set_name(filter, "Image formats");
-	g_list_store_append(gls, filter);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter);
+	// g_list_store_append(gls, filter);
 
 	last_write = 0;
 	memset(filterbuff, 0, last_write);
 	GtkFileFilter *filter_video = gtk_file_filter_new();
 	for (const auto& [k, v] : FFMPEG_CONVERSIONS) {
 		if (FORMAT_EXTENSIONS.contains(k))
-			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
+			gtk_file_filter_add_suffix(filter_video, FORMAT_EXTENSIONS.at(k).c_str());
+			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
-	gtk_file_filter_add_pattern(filter_video, filterbuff);
+	//gtk_file_filter_add_pattern(filter_video, filterbuff);
 	gtk_file_filter_set_name(filter_video, "Audio/Video formats");
-	g_list_store_append(gls, filter_video);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter_video);
+	//g_list_store_append(gls, filter_video);
 
 	last_write = 0;
 	memset(filterbuff, 0, last_write);
 	GtkFileFilter *filter_doc = gtk_file_filter_new();
 	for (const auto& [k, v] : PANDOC_CONVERSIONS) {
 		if (FORMAT_EXTENSIONS.contains(k))
-			last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
+			gtk_file_filter_add_suffix(filter_doc, FORMAT_EXTENSIONS.at(k).c_str());
+			//last_write += sprintf(filterbuff+last_write, "*.%s ", FORMAT_EXTENSIONS.at(k).c_str());
 	}
-	gtk_file_filter_add_pattern(filter_doc, filterbuff);
+	//gtk_file_filter_add_pattern(filter_doc, filterbuff);
 	gtk_file_filter_set_name(filter_doc, "Document formats");
-	g_list_store_append(gls, filter_doc);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter_doc);
+	// g_list_store_append(gls, filter_doc);
 
-	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(gls));
-	gtk_file_dialog_open_multiple(fd, GTK_WINDOW(window), cancel, async_callback, NULL);
+	// gtk_file_dialog_set_filters(fd, G_LIST_MODEL(gls));
+	g_signal_connect(fd, "response", G_CALLBACK(async_callback), NULL);
+	gtk_window_present(GTK_WINDOW(fd));
+	// gtk_file_dialog_open_multiple(fd, GTK_WINDOW(window), cancel, async_callback, NULL);
 }
 
 void dd_setup(GtkSignalListItemFactory* self, GObject* object, gpointer user_data) {
@@ -258,18 +267,22 @@ void filelist_bind(GtkSignalListItemFactory* self, GObject* object, gpointer use
 	gtk_label_set_text(GTK_LABEL(lb), str);
 }
 
-void output_folder_async(GObject *source_object, GAsyncResult *res, gpointer data) {
-	GError *err;
-	auto folder = gtk_file_dialog_select_folder_finish(output_fd, res, &err);
+void output_folder_async(GtkDialog* self, gint response_id, gpointer user_data) {
+	if (response_id == -4) return; // close
+	auto folder = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(output_fd));
 	if (folder) {
 		output_folder_path = g_file_get_path(folder);
-		//printf("path: %s\n", output_folder_path);
+		printf("path: %s\n", output_folder_path);
+		gtk_window_close(GTK_WINDOW(self));
 	}
 }
 
 void output_folder_clicked(GtkWidget *widget, gpointer data) {
-	output_fd = gtk_file_dialog_new();
-	gtk_file_dialog_select_folder(output_fd, GTK_WINDOW(window), cancel, output_folder_async, NULL);
+	output_fd = gtk_file_chooser_dialog_new(_(""), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, _("Select"), "", (char*)NULL);
+	g_signal_connect(output_fd, "response", G_CALLBACK(output_folder_async), NULL);
+	gtk_window_present(GTK_WINDOW(output_fd));
+	// output_fd = gtk_file_dialog_new();
+	// gtk_file_dialog_select_folder(output_fd, GTK_WINDOW(window), cancel, output_folder_async, NULL);
 }
 
 static void activate(GtkApplication *app, gpointer user_data)

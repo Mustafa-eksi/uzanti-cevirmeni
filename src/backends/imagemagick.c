@@ -1,8 +1,8 @@
 #include "imagemagick.h"
 
-const char *im_file_not_found = "magick: unable to open image";
+const char *im_file_not_found = "convert-im6.q16: unable to open image";
 
-const char *magick_cmd_template = "magick \"%s\" \"%s\"";
+const char *magick_cmd_template = "convert \"%s\" \"%s\"";
 
 enum Result imagemagick_convert_single(const char* in_path, const char* out_path, struct ImageMagickSettings settings)
 {
