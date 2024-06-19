@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "backends/ffmpeg.c"
-#include "backends/imagemagick.c"
+#include "backends/imagemagick.cpp"
 #include "backends/pandoc.c"
 #include "backends/libreoffice.c"
 

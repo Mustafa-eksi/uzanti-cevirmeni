@@ -230,7 +230,7 @@ void filelist_setup(GtkSignalListItemFactory* self, GObject* object, gpointer us
 	GtkWidget *bt = gtk_button_new();
 	gtk_widget_set_halign(bt, GTK_ALIGN_END);
 	gtk_widget_set_hexpand(bt, GTK_ALIGN_END);
-	gtk_button_set_icon_name(GTK_BUTTON(bt), "delete");
+	gtk_button_set_icon_name(GTK_BUTTON(bt), "remove");
 	GtkListItem *li = GTK_LIST_ITEM(object);
 	if (!li) {
 		show_alert(_("An unknown error has occurred"), NULL);
@@ -288,7 +288,7 @@ static void activate(GtkApplication *app, gpointer user_data)
 {
 	window = gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window), "Window");
-	gtk_window_set_default_size(GTK_WINDOW(window), 600, 400);
+	gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_widget_set_valign(box, GTK_ALIGN_CENTER);
@@ -325,10 +325,15 @@ static void activate(GtkApplication *app, gpointer user_data)
 	gtk_box_append(GTK_BOX(box3), dd);
 	gtk_box_append(GTK_BOX(box2), box3);
 
+	auto frame = gtk_frame_new(NULL);
 	expander = gtk_expander_new(_("Advanced settings")); // Daha fazla ayar
-	settingsw = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	set_equal_margin(expander, 5);
+	settingsw = gtk_grid_new();
+	gtk_grid_set_column_spacing(GTK_GRID(settingsw), 15);
+	gtk_grid_set_row_spacing(GTK_GRID(settingsw), 5);
 	gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
-	gtk_box_append(GTK_BOX(box2), expander);
+	gtk_frame_set_child(GTK_FRAME(frame), expander);
+	gtk_box_append(GTK_BOX(box2), frame);
 
 	GtkWidget *output_folder_button = gtk_button_new();
 	gtk_button_set_label(GTK_BUTTON(output_folder_button), _("Select output directory")); // Çıktı klasörü seçin

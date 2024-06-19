@@ -9,6 +9,8 @@ const char *IM_compression[] = {
 };
 struct ImageMagickSettings {
     size_t compress;
+    bool grayscale, flip_horizontal, flip_vertical;
+    int rotation, resize, quality;
 };
 
 

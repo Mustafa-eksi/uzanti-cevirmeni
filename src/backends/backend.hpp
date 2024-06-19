@@ -1,5 +1,6 @@
 #ifndef BACKEND_H
 #define BACKEND_H
+#include "gtk/gtkdropdown.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -58,6 +59,42 @@ char *change_extension(const char* file, const char* new_extension, char* out)
     strcpy(out, file+dot_pos+1);
     strcpy(out+dot_pos+1, new_extension);
     return out;
+}
+
+GtkWidget *label_spin(std::string label, int rs, int re, int s, int starting_value) {
+    GtkWidget *rotbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *rotlabw = gtk_label_new(label.c_str());
+    GtkWidget *rotspinw = gtk_spin_button_new_with_range(rs, re, s);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(rotspinw), starting_value);
+    gtk_box_append(GTK_BOX(rotbox), rotlabw);
+    gtk_box_append(GTK_BOX(rotbox), rotspinw);
+    return rotbox;
+}
+
+int get_spin_value(GtkWidget *box) {
+    auto spinw = gtk_widget_get_last_child(box);
+    return gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spinw));
+}
+
+GtkWidget *label_drop(std::string label, const char** strings) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *labw = gtk_label_new(label.c_str());
+    GtkWidget *dropw = gtk_drop_down_new_from_strings(strings);
+    gtk_box_append(GTK_BOX(box), labw);
+    gtk_box_append(GTK_BOX(box), dropw);
+    return box;
+}
+
+size_t get_drop_value(GtkWidget *box) {
+    auto dropw = gtk_widget_get_last_child(box);
+    return gtk_drop_down_get_selected(GTK_DROP_DOWN(dropw));
+}
+
+void set_equal_margin(GtkWidget* w, size_t m) {
+    gtk_widget_set_margin_bottom(w, m);
+    gtk_widget_set_margin_top(w, m);
+    gtk_widget_set_margin_start(w, m);
+    gtk_widget_set_margin_end(w, m);
 }
 
 #endif // BACKEND_H

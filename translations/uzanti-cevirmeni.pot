@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-19 20:27+0300\n"
+"POT-Creation-Date: 2024-06-19 22:23+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,7 +82,7 @@ msgstr ""
 msgid "An unknown error has occurred"
 msgstr ""
 
-#: src/main.cpp:280 src/main.cpp:334
+#: src/main.cpp:280 src/main.cpp:339
 msgid "Select output directory"
 msgstr ""
 
@@ -94,16 +94,44 @@ msgstr ""
 msgid "Output format:"
 msgstr ""
 
-#: src/main.cpp:328
+#: src/main.cpp:329
 msgid "Advanced settings"
 msgstr ""
 
-#: src/main.cpp:340
+#: src/main.cpp:345
 msgid "Convert!"
 msgstr ""
 
-#: src/backends/ffmpeg.c:32
+#: src/backends/ffmpeg.c:31
 msgid "Framerate:"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:59
+msgid "Grayscale"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:62
+msgid "Flip horizontally"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:65
+msgid "Flip vertically"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:68
+msgid "Compression"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:71
+msgid "Rotation:"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:73
+msgid "Resize (%):"
+msgstr ""
+
+#: src/backends/imagemagick.cpp:75
+msgid "Quality:"
 msgstr ""
 
 #: src/backends/pandoc.c:43
