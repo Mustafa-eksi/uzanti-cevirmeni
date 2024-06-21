@@ -16,9 +16,9 @@ std::string imagemagick_parse_settings(struct ImageMagickSettings settings) {
         res += "-flop ";
     if (settings.rotation != 0)
         res += "-rotate "+std::to_string(settings.rotation)+" ";
-    if (settings.resize != 100)
+    if (settings.resize != 100 && settings.resize > 0)
         res += "-resize "+std::to_string(settings.resize)+"% ";
-    if (settings.compress != 0)
+    if (settings.compress > 0 && settings.compress < IM_COMPRESSION_LEN)
         res += "-compress "+ (std::string)IM_compression[settings.compress] +" ";
     if (settings.quality != 92)
         res += "-quality " +std::to_string(settings.quality)+" ";
@@ -32,6 +32,7 @@ enum Result imagemagick_convert_single(const char* in_path, const char* out_path
         return res;
 
     std::string cmd = "convert \""+ (std::string)in_path +"\" "+ imagemagick_parse_settings(settings) +" \""+ (std::string)out_path +"\"";
+    printf("cmd: %s\n", cmd.c_str());
     FILE *im_pipe = popen(cmd.c_str(), "r");
     if (!im_pipe) {
         return UNKNOWN_ERROR;
@@ -81,10 +82,10 @@ struct ImageMagickSettings imagemagick_get_settings(GtkWidget* box) {
     GtkWidget *grayw = gtk_widget_get_first_child(box);
     GtkWidget *fliphw = gtk_widget_get_next_sibling(grayw);
     GtkWidget *flipvw = gtk_widget_get_next_sibling(fliphw);
-    GtkWidget *rotbox = gtk_widget_get_next_sibling(flipvw);
+    GtkWidget *compressionw = gtk_widget_get_next_sibling(flipvw);
+    GtkWidget *rotbox = gtk_widget_get_next_sibling(compressionw);
     GtkWidget *resizew = gtk_widget_get_next_sibling(rotbox);
-    GtkWidget *compressionw = gtk_widget_get_next_sibling(resizew);
-    GtkWidget *qualityw = gtk_widget_get_next_sibling(compressionw);
+    GtkWidget *qualityw = gtk_widget_get_next_sibling(resizew);
 
     return (struct ImageMagickSettings) {
         .compress = get_drop_value(compressionw),

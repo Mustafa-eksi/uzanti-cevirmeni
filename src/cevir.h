@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include "backends/ffmpeg.c"
+#include "backends/ffmpeg.cpp"
+#include "backends/ffmpeg.h"
 #include "backends/imagemagick.cpp"
 #include "backends/pandoc.c"
 #include "backends/libreoffice.c"
@@ -22,10 +23,18 @@ const std::map<enum ConverterProgram, const char*> EXECUTABLE_NAMES = {
 
 typedef unsigned long size_t;
 
+union ConvertSettings {
+    FfmpegSettings f;
+    ImageMagickSettings i;
+    PandocSettings p;
+    LibreofficeSettings l;
+};
+
 enum Result test_cli(const char* app);
 int get_converter_from_extension(const char *extension);
 char *get_extension(const char* file);
-enum Result convert_helper(const char *file, const char *extension, enum ConverterProgram cp);
+union ConvertSettings get_settings_helper(enum ConverterProgram cp, GtkWidget* sw);
+void convert_helper(std::string file, std::string extension, std::string output_folder, enum ConverterProgram cp, union ConvertSettings setting, enum Result *res);
 const char* const* create_dropdown_list(std::vector<enum FileFormat> formats);
 
 // Image magick stuff

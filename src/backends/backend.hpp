@@ -80,6 +80,7 @@ GtkWidget *label_drop(std::string label, const char** strings) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     GtkWidget *labw = gtk_label_new(label.c_str());
     GtkWidget *dropw = gtk_drop_down_new_from_strings(strings);
+    gtk_drop_down_set_selected(GTK_DROP_DOWN(dropw), 0);
     gtk_box_append(GTK_BOX(box), labw);
     gtk_box_append(GTK_BOX(box), dropw);
     return box;

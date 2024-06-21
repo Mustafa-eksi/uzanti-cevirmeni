@@ -1,6 +1,7 @@
 #include "backend.hpp"
 
-const char *IM_compression[] = {
+#define IM_COMPRESSION_LEN 31
+const char *IM_compression[IM_COMPRESSION_LEN] = {
     "Default", "B44A", "B44", "BZip", "DWAA", "DWAB", "DXT1",
     "DXT3", "DXT5", "BC7", "Fax", "Group4", "JBIG1",
     "JBIG2", "JPEG2000", "JPEG", "LERC", "LosslessJPEG",

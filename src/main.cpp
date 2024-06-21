@@ -1,33 +1,29 @@
+#include <deque>
+#include <functional>
+#include <future>
 #include <gtk/gtk.h>
 #include <gtk/gtkorientable.h>
 #include <gio/gcancellable.h>
 #include <gio/gasyncresult.h>
 #include <string.h>
 #include <stdio.h>
+#include <thread>
 #include "backends/backend.hpp"
 #include "backends/ffmpeg.h"
 #include "backends/pandoc.h"
 #include "cevir.cpp"
 
-GtkWidget *window;
-GtkWidget *fd;
+GtkWidget *window, *fd, *sf_button, *filepath_label,
+		  *filepath_view, *box2, *settingsw,
+		  *expander, *stack, *output_fd, *dd,
+		  *convert_button, *scw, *box, *spinner,
+		  *box_main;
+
 GCancellable *cancel;
-GtkWidget *dd;
-GtkWidget *convert_button;
-std::vector<char*> paths;
+
+char *output_folder_path;
+std::deque<char*> paths;
 enum ConverterProgram cp;
-GtkWidget *sf_button, *filepath_label;
-GtkWidget* dialg;
-GtkWidget *filepath_view;
-GtkWidget *box2;
-GtkWidget *settingsw;
-GtkWidget* expander;
-
-char* output_folder_path;
-GtkWidget *output_fd;
-
-#define DOSYA_SEC _("Select file")
-#define DOSYA_DEGISTIR _("Change selected files")
 
 void alert_clicked(GtkDialog* self, gint response_id, gpointer user_data)
 {
@@ -36,9 +32,9 @@ void alert_clicked(GtkDialog* self, gint response_id, gpointer user_data)
 }
 
 void show_alert(const char* text, const char* detail) {
-	dialg = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, text, detail);
-	g_signal_connect(dialg, "response", G_CALLBACK(alert_clicked), NULL);
-	gtk_window_present(GTK_WINDOW(dialg));
+	GtkWidget* dialog = gtk_message_dialog_new(GTK_WINDOW(window), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, text, detail);
+	g_signal_connect(dialog, "response", G_CALLBACK(alert_clicked), NULL);
+	gtk_window_present(GTK_WINDOW(dialog));
 }
 
 void sync_paths() {
@@ -48,10 +44,10 @@ void sync_paths() {
 }
 
 void no_files() {
-	gtk_widget_set_visible(filepath_view, false);
+	gtk_widget_set_visible(scw, false);
 	//gtk_widget_set_visible(dd, false);
 	gtk_widget_set_visible(convert_button, false);
-	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_SEC);
+	gtk_button_set_label(GTK_BUTTON(sf_button), _("Select file"));
 	gtk_widget_set_visible(box2, false);
 }
 
@@ -87,7 +83,7 @@ void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 	paths.push_back(NULL);
 	GtkWidget *first_c = gtk_widget_get_first_child(settingsw);
 	while (first_c != NULL) {
-		gtk_box_remove(GTK_BOX(settingsw), first_c);
+		gtk_grid_remove(GTK_GRID(settingsw), first_c);
 		first_c = gtk_widget_get_first_child(settingsw);
 	}
 	if ((cp & IMAGEMAGICK) != 0) {
@@ -111,8 +107,8 @@ void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 	gtk_drop_down_set_model(GTK_DROP_DOWN(dd), G_LIST_MODEL(strlist));
 	gtk_widget_set_visible(box2, true);
 	gtk_widget_set_visible(convert_button, true);
-	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_DEGISTIR);
-	gtk_widget_set_visible(filepath_view, true);
+	gtk_button_set_label(GTK_BUTTON(sf_button), _("Clear selected files"));
+	gtk_widget_set_visible(scw, true);
 	sync_paths();
 
 	//free(ext);
@@ -131,28 +127,48 @@ const char* result_to_str(enum Result r) {
 
 void convert_clicked(GtkWidget *widget, gpointer data)
 {
+	//gtk_stack_set_visible_child_name(GTK_STACK(stack), "spin");
+	gtk_widget_set_visible(box, false);
+	gtk_widget_set_visible(spinner, true);
+	gtk_spinner_start(GTK_SPINNER(spinner));
+
+	show_alert(_("Process has been started, please check the destination folder"), NULL);
+
+	//printf("-> shit got discared ;(\n");
+	enum Result res = SUCCESS;
 	guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(dd));
 	GtkStringList *model = GTK_STRING_LIST(gtk_drop_down_get_model(GTK_DROP_DOWN(dd)));
-	const char *ext = gtk_string_list_get_string(model, selected);
-	enum Result res = SUCCESS;
 	// TODO: Make this multithreaded.
+	const char *ext = gtk_string_list_get_string(model, selected);
+	auto settings = get_settings_helper(cp, settingsw);
+	std::vector<std::thread> ts;
 	for (const auto& path : paths) {
-		if (!path)
+		if (!path || !ext || !output_folder_path)
 			continue;
-		auto r = convert_helper(path, ext, output_folder_path, cp, settingsw);
-		if (res == SUCCESS)
-			res = r;
-		//printf("converted: %s\n", path);
+		//ts.push_back();
+		std::thread(convert_helper, (std::string)path, (std::string)ext, (std::string)output_folder_path, cp, settings, &res).detach();
 	}
-	if (res == SUCCESS) {
-		show_alert(_("All files converted successfully"), NULL); // Bütün dosyalar başarıyla çevrildi!
-	} else {
-		show_alert(_("Conversions of some files had failed: %s"), result_to_str(res)); // Bazı dosyaların çevrimi başarısız oldu!: %s
+	for (auto& t : ts) {
+		t.join();
+		paths.pop_front();
+		sync_paths();
+		printf("-> a conversion ended!\n");
 	}
+	if (paths.empty())
+		no_files();
+	gtk_widget_set_visible(box, true);
+	gtk_spinner_stop(GTK_SPINNER(spinner));
+	gtk_widget_set_visible(spinner, false);
 }
 
 void clicked(GtkWidget *widget, gpointer data)
 {
+	if (!paths.empty()) {
+		paths.clear();
+		sync_paths();
+		no_files();
+		return;
+	}
 	fd = gtk_file_chooser_dialog_new(_("Open file"), GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("Open"), "", (char*)NULL);
 	// GListStore *gls = g_list_store_new(gtk_file_filter_get_type());
 
@@ -194,6 +210,7 @@ void clicked(GtkWidget *widget, gpointer data)
 	//gtk_file_filter_add_pattern(filter_doc, filterbuff);
 	gtk_file_filter_set_name(filter_doc, _("Document formats"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fd), filter_doc);
+	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(fd), true);
 	// g_list_store_append(gls, filter_doc);
 
 	// gtk_file_dialog_set_filters(fd, G_LIST_MODEL(gls));
@@ -290,64 +307,82 @@ static void activate(GtkApplication *app, gpointer user_data)
 	gtk_window_set_title(GTK_WINDOW(window), "Window");
 	gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 
-	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	box_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+
+	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_widget_set_valign(box, GTK_ALIGN_CENTER);
+	gtk_widget_set_vexpand(box, true);
 	gtk_widget_set_halign(box, GTK_ALIGN_CENTER);
+	gtk_widget_set_hexpand(box, true);
 
 	/*auto filepath_strlist = gtk_string_list_new(&paths[0]);
 	auto filepath_model = gtk_single_selection_new(G_LIST_MODEL(filepath_strlist));*/
-	auto filepath_factory = gtk_signal_list_item_factory_new();
-	g_signal_connect(filepath_factory, "setup", G_CALLBACK(filelist_setup), NULL);
-	g_signal_connect(filepath_factory, "bind", G_CALLBACK(filelist_bind), NULL);
-	filepath_view = gtk_list_view_new(NULL, filepath_factory);
-	gtk_box_append(GTK_BOX(box), filepath_view);
+		scw = gtk_scrolled_window_new();
+		gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scw), 700);
+		gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scw), true);
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scw), true);
+			auto filepath_factory = gtk_signal_list_item_factory_new();
+			g_signal_connect(filepath_factory, "setup", G_CALLBACK(filelist_setup), NULL);
+			g_signal_connect(filepath_factory, "bind", G_CALLBACK(filelist_bind), NULL);
+			filepath_view = gtk_list_view_new(NULL, filepath_factory);
+		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scw), filepath_view);
+		gtk_widget_set_visible(scw, false);
+	gtk_box_append(GTK_BOX(box), scw);
 
-	sf_button = gtk_button_new();
-	gtk_widget_set_valign(sf_button, GTK_ALIGN_CENTER);
-	gtk_widget_set_halign(sf_button, GTK_ALIGN_CENTER);
 
-	gtk_button_set_label(GTK_BUTTON(sf_button), DOSYA_SEC);
-	g_signal_connect(sf_button, "clicked", G_CALLBACK(clicked), NULL);
+		sf_button = gtk_button_new();
+		gtk_widget_set_valign(sf_button, GTK_ALIGN_CENTER);
+		gtk_widget_set_halign(sf_button, GTK_ALIGN_CENTER);
+		gtk_button_set_label(GTK_BUTTON(sf_button), _("Select file"));
+		g_signal_connect(sf_button, "clicked", G_CALLBACK(clicked), NULL);
 	gtk_box_append(GTK_BOX(box), sf_button);
 
 	box2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_widget_set_margin_top(box2, 20);
 	gtk_widget_set_halign(box2, GTK_ALIGN_CENTER);
 	gtk_widget_set_visible(box2, false);
-	GtkWidget *box3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-	gtk_widget_set_halign(box3, GTK_ALIGN_CENTER);
-	dd = gtk_drop_down_new(NULL, NULL);
-	GtkListItemFactory *gslif = gtk_signal_list_item_factory_new();
-	g_signal_connect(gslif, "setup", G_CALLBACK(dd_setup), NULL);
-	g_signal_connect(gslif, "bind", G_CALLBACK(dd_bind), NULL);
-	GtkWidget *ddlb = gtk_label_new(_("Output format:")); // Çıktı uzantısı:
-	gtk_box_append(GTK_BOX(box3), ddlb);
-	gtk_box_append(GTK_BOX(box3), dd);
+
+		GtkWidget *box3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+		gtk_widget_set_halign(box3, GTK_ALIGN_CENTER);
+		dd = gtk_drop_down_new(NULL, NULL);
+		GtkListItemFactory *gslif = gtk_signal_list_item_factory_new();
+		g_signal_connect(gslif, "setup", G_CALLBACK(dd_setup), NULL);
+		g_signal_connect(gslif, "bind", G_CALLBACK(dd_bind), NULL);
+		GtkWidget *ddlb = gtk_label_new(_("Output format:")); // Çıktı uzantısı:
+		gtk_box_append(GTK_BOX(box3), ddlb);
+		gtk_box_append(GTK_BOX(box3), dd);
 	gtk_box_append(GTK_BOX(box2), box3);
 
-	auto frame = gtk_frame_new(NULL);
-	expander = gtk_expander_new(_("Advanced settings")); // Daha fazla ayar
-	set_equal_margin(expander, 5);
-	settingsw = gtk_grid_new();
-	gtk_grid_set_column_spacing(GTK_GRID(settingsw), 15);
-	gtk_grid_set_row_spacing(GTK_GRID(settingsw), 5);
-	gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
-	gtk_frame_set_child(GTK_FRAME(frame), expander);
+		auto frame = gtk_frame_new(NULL);
+		expander = gtk_expander_new(_("Advanced settings")); // Daha fazla ayar
+		set_equal_margin(expander, 5);
+		settingsw = gtk_grid_new();
+		gtk_grid_set_column_spacing(GTK_GRID(settingsw), 15);
+		gtk_grid_set_row_spacing(GTK_GRID(settingsw), 5);
+		gtk_expander_set_child(GTK_EXPANDER(expander), settingsw);
+		gtk_frame_set_child(GTK_FRAME(frame), expander);
 	gtk_box_append(GTK_BOX(box2), frame);
 
-	GtkWidget *output_folder_button = gtk_button_new();
-	gtk_button_set_label(GTK_BUTTON(output_folder_button), _("Select output directory")); // Çıktı klasörü seçin
-	g_signal_connect(output_folder_button, "clicked", G_CALLBACK(output_folder_clicked), NULL);
+		GtkWidget *output_folder_button = gtk_button_new();
+		gtk_button_set_label(GTK_BUTTON(output_folder_button), _("Select output directory")); // Çıktı klasörü seçin
+		g_signal_connect(output_folder_button, "clicked", G_CALLBACK(output_folder_clicked), NULL);
 	gtk_box_append(GTK_BOX(box2), output_folder_button);
 
-	convert_button = gtk_button_new();
-	gtk_widget_set_visible(convert_button, false);
-	gtk_button_set_label(GTK_BUTTON(convert_button), _("Convert!"));
-	g_signal_connect(convert_button, "clicked", G_CALLBACK(convert_clicked), NULL);
+		convert_button = gtk_button_new();
+		gtk_widget_set_visible(convert_button, false);
+		gtk_button_set_label(GTK_BUTTON(convert_button), _("Convert!"));
+		g_signal_connect(convert_button, "clicked", G_CALLBACK(convert_clicked), NULL);
 	gtk_box_append(GTK_BOX(box2), convert_button);
 
 	gtk_box_append(GTK_BOX(box), box2);
-	gtk_window_set_child(GTK_WINDOW(window), box);
+	gtk_box_append(GTK_BOX(box_main), box);
+
+		spinner = gtk_spinner_new();
+		set_equal_margin(spinner, 150);
+		gtk_widget_set_visible(spinner, false);
+	gtk_box_append(GTK_BOX(box_main), spinner);
+	// gtk_stack_set_visible_child_name(GTK_STACK(stack), "main");
+	gtk_window_set_child(GTK_WINDOW(window), box_main);
 	gtk_window_present(GTK_WINDOW(window));
 }
 

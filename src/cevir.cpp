@@ -43,7 +43,17 @@ enum Result check_available(enum ConverterProgram *inout) {
     return EXECUTABLE_NOT_FOUND;
 }
 
-enum Result convert_helper(const char *file, const char *extension, const char *output_folder, enum ConverterProgram cp, GtkWidget* settingsw)
+union ConvertSettings get_settings_helper(enum ConverterProgram cp, GtkWidget* sw) {
+    if (cp == IMAGEMAGICK)
+        return { .i = imagemagick_get_settings(sw)};
+    else if (cp == FFMPEG)
+        return {.f =ffmpeg_get_settings(sw)};
+    else if (cp == PANDOC)
+        return {.p = pandoc_get_settings(sw)};
+    return {};
+}
+
+void convert_helper(std::string file, std::string extension, std::string output_folder, enum ConverterProgram cp, union ConvertSettings settings, enum Result *res)
 {
     enum Result r = EXECUTABLE_NOT_FOUND;
     enum ConverterProgram use_this = cp;
@@ -51,33 +61,34 @@ enum Result convert_helper(const char *file, const char *extension, const char *
     std::string output_path;
 
     size_t dot_pos = 0;
-    for (size_t i = 0; i < strlen(file); i++)
+    for (size_t i = 0; i < file.size(); i++)
         if (file[i] == '.')
             dot_pos = i;
-    if (output_folder == NULL) {
+    if (output_folder.empty()) {
         output_path.assign(file, 0, dot_pos+1);
         output_path.append(extension);
     } else {
         size_t slash_pos = 0;
-        for (size_t i = 0; i < strlen(file); i++)
+        for (size_t i = 0; i < file.size(); i++)
             if (file[i] == '/')
                 slash_pos = i;
         output_path.assign(output_folder);
-        output_path.append(file+slash_pos, dot_pos-slash_pos);
+        output_path.append(file.substr(slash_pos, dot_pos-slash_pos));
         output_path += ".";
         output_path.append(extension);
     }
 
     if (use_this == IMAGEMAGICK)
-        r = imagemagick_convert_single(file, output_path.c_str(), imagemagick_get_settings(settingsw));
+        r = imagemagick_convert_single(file.c_str(), output_path.c_str(), settings.i);
     else if (use_this == FFMPEG)
-        r = ffmpeg_convert_single(file, output_path.c_str(), ffmpeg_get_settings(settingsw));
+        r = ffmpeg_convert_single(file.c_str(), output_path.c_str(), settings.f);
     else if (use_this == PANDOC)
-        r = pandoc_convert_single(file, output_path.c_str(), pandoc_get_settings(settingsw)); // For testing
+        r = pandoc_convert_single(file.c_str(), output_path.c_str(), settings.p); // For testing
     else if (use_this == LIBREOFFICE)
-        r = libreoffice_convert_single(file, output_folder, extension, (struct LibreofficeSettings) {});
+        r = libreoffice_convert_single(file.c_str(), output_folder.c_str(), extension.c_str(), settings.l);
 
-    return r;
+    if (*res == SUCCESS)
+        *res = r;
 }
 
 int get_converter_from_extension(const char *extension)
