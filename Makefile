@@ -11,10 +11,12 @@ install:
 	install uzanti-cevirmeni $(DESTDIR)$(prefix)/bin
 	install -d $(LOCALE_DIR)/tr/LC_MESSAGES
 	install translations/tr.mo $(LOCALE_DIR)/tr/LC_MESSAGES/uzanti-cevirmeni.mo
+	install Uzanti-Cevirmeni.desktop $(DESTDIR)$(prefix)/share/applications/me.mustafaeksi.uzanti-cevirmeni.desktop
 
 uninstall:
 	rm $(DESTDIR)$(prefix)/bin/uzanti-cevirmeni
 	rm $(LOCALE_DIR)/tr/LC_MESSAGES/uzanti-cevirmeni.mo
+	rm $(DESTDIR)$(prefix)/share/applications/me.mustafaeksi.uzanti-cevirmeni.desktop
 
 clean:
 	rm uzanti-cevirmeni

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility
+Comment[en_US]=File Converter
+Comment[tr]=Dosya çevirici
+Comment=File Converter
+Exec=uzanti-cevirmeni %f
+Name[en_US]=Uzanti Cevirmeni
+Name=Uzantı Çevirmeni
+Type=Application
+MimeType=video/webm;image/gif;video/mp4;audio/mp3;audio/opus;video/x-msvideo;video/quicktime;image/png;image/webp;image/jpeg;image/jpeg;image/svg+xml;application/epub+zip;text/html;application/json;application/x-tex;text/markdown;application/vnd.oasis.opendocument.text;text/xml;text/org;text/rst;application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/msword;text/plain;image/x-xcf
+

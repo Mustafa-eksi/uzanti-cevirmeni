@@ -1,8 +1,12 @@
 # Uzantı Çevirmeni
-İstediğiniz türden dosyayı başka uzantılara çevirin!
+Convert every file you want without opening a terminal!
 
-# Kullanılan uygulamalar
-- Pandoc: dökümanları çevirmek için
-- Ffmpeg: Video ve ses dosyalarını çevirmek için
-- ImageMagick: Görüntü dosyalarını çevirmek için  
-kullanılıyor. Pandoc'a alternatif olarak libreoffice eklemeyi planlıyorum.
+![A screenshot from uzanti-cevirmeni running on EndeavourOS](./screenshot.png)
+
+# Used programs
+- Pandoc: for converting documents  
+- Ffmpeg: for converting video/audio files  
+- ImageMagick: for converting image files  
+- Libreoffice: replaces pandoc if pandoc is not installed  
+
+

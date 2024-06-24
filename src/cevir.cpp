@@ -1,4 +1,4 @@
-#include "cevir.h"
+#include "cevir.hpp"
 #include "backends/backend.hpp"
 #include <stdio.h>
 #include <string.h>
@@ -35,12 +35,11 @@ out:
 enum Result check_available(enum ConverterProgram *inout) {
     for (const auto& [k, v] : EXECUTABLE_NAMES) {
         if ((k & *inout) == 0) continue;
-        if (test_cli(v) == SUCCESS) {
-            *inout = k;
-            return SUCCESS;
+        if (test_cli(v) != SUCCESS) {
+            *inout = (enum ConverterProgram)(*inout & ~k);
         }
     }
-    return EXECUTABLE_NOT_FOUND;
+    return SUCCESS;
 }
 
 union ConvertSettings get_settings_helper(enum ConverterProgram cp, GtkWidget* sw) {
@@ -50,14 +49,18 @@ union ConvertSettings get_settings_helper(enum ConverterProgram cp, GtkWidget* s
         return {.f =ffmpeg_get_settings(sw)};
     else if (cp == PANDOC)
         return {.p = pandoc_get_settings(sw)};
+    else if (cp == LIBREOFFICE)
+        return {.l = libreoffice_get_settings(sw)};
     return {};
 }
 
 void convert_helper(std::string file, std::string extension, std::string output_folder, enum ConverterProgram cp, union ConvertSettings settings, enum Result *res)
 {
+    if (file.empty() || extension.empty() || output_folder.empty())
+        return;
     enum Result r = EXECUTABLE_NOT_FOUND;
     enum ConverterProgram use_this = cp;
-    check_available(&use_this);
+    // check_available(&use_this);
     std::string output_path;
 
     size_t dot_pos = 0;
@@ -77,18 +80,20 @@ void convert_helper(std::string file, std::string extension, std::string output_
         output_path += ".";
         output_path.append(extension);
     }
+    // printf("-> convert '%s'\n", file.c_str());
 
-    if (use_this == IMAGEMAGICK)
+    if ((use_this & IMAGEMAGICK) != 0)
         r = imagemagick_convert_single(file.c_str(), output_path.c_str(), settings.i);
-    else if (use_this == FFMPEG)
+    else if ((use_this & FFMPEG) != 0)
         r = ffmpeg_convert_single(file.c_str(), output_path.c_str(), settings.f);
-    else if (use_this == PANDOC)
+    else if ((use_this & PANDOC) != 0)
         r = pandoc_convert_single(file.c_str(), output_path.c_str(), settings.p); // For testing
-    else if (use_this == LIBREOFFICE)
-        r = libreoffice_convert_single(file.c_str(), output_folder.c_str(), extension.c_str(), settings.l);
+    else if ((use_this & LIBREOFFICE) != 0)
+        r = libreoffice_convert_single(file, output_folder, extension, settings.l);
 
-    if (*res == SUCCESS)
-        *res = r;
+
+    /*if (*res == SUCCESS)
+        *res = r;*/
 }
 
 int get_converter_from_extension(const char *extension)
@@ -96,7 +101,6 @@ int get_converter_from_extension(const char *extension)
     int res = UNSUPPORTED;
     for (const auto& [key, val] : FORMAT_EXTENSIONS) {
         if (strcmp(val.c_str(), extension) != 0) continue;
-        printf("'%s' == '%s'\n", val.c_str(), extension);
         if (LIBREOFFICE_CONVERSIONS.contains(key))
             res |= LIBREOFFICE;
         if (PANDOC_CONVERSIONS.contains(key))
@@ -116,6 +120,7 @@ char *get_extension(const char* file)
     for (size_t i = 0; i < strlen(file); i++)
         if (file[i] == '.')
             dot_pos = i;
+    if (dot_pos == 0) return NULL;
     char *extension = (char*) malloc((strlen(file)-dot_pos)*sizeof(char));
     strcpy(extension, file+dot_pos+1);
     return extension;

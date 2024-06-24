@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-22 00:47+0300\n"
+"POT-Creation-Date: 2024-06-24 13:10+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,118 +17,123 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.cpp:50 src/main.cpp:336
+#: src/main.cpp:48 src/main.cpp:341
 msgid "Select file"
 msgstr ""
 
-#: src/main.cpp:101
+#: src/main.cpp:62
+#, c-format
+msgid "Some files don't share the same extension! %s"
+msgstr ""
+
+#: src/main.cpp:87
 msgid "Couldn't find any converter program for given files!"
 msgstr ""
 
-#: src/main.cpp:110
+#: src/main.cpp:96
 msgid "Clear selected files"
 msgstr ""
 
-#: src/main.cpp:119
+#: src/main.cpp:127
 msgid "Successful"
 msgstr ""
 
-#: src/main.cpp:120 src/main.cpp:124
+#: src/main.cpp:128 src/main.cpp:132
 msgid "Unknown error"
 msgstr ""
 
-#: src/main.cpp:121
+#: src/main.cpp:129
 msgid "Couldn't find the executable file"
 msgstr ""
 
-#: src/main.cpp:122
+#: src/main.cpp:130
 msgid "Not enough memory"
 msgstr ""
 
-#: src/main.cpp:123
+#: src/main.cpp:131
 msgid "Couldn't find the file"
 msgstr ""
 
-#: src/main.cpp:135
+#: src/main.cpp:143
 msgid "Process has been started, please check the destination folder"
 msgstr ""
 
-#: src/main.cpp:172
+#: src/main.cpp:177
 msgid "Open file"
 msgstr ""
 
-#: src/main.cpp:172
+#: src/main.cpp:177
 msgid "Open"
 msgstr ""
 
-#: src/main.cpp:185
+#: src/main.cpp:190
 msgid "Image formats"
 msgstr ""
 
-#: src/main.cpp:198
+#: src/main.cpp:203
 msgid "Audio/Video formats"
 msgstr ""
 
-#: src/main.cpp:211
+#: src/main.cpp:216
 msgid "Document formats"
 msgstr ""
 
-#: src/main.cpp:226 src/main.cpp:235 src/main.cpp:253 src/main.cpp:274
+#: src/main.cpp:231 src/main.cpp:240 src/main.cpp:258 src/main.cpp:279
 msgid "An unknown error has occurred"
 msgstr ""
 
-#: src/main.cpp:297 src/main.cpp:367
+#: src/main.cpp:302 src/main.cpp:372
 msgid "Select output directory"
 msgstr ""
 
-#: src/main.cpp:297
+#: src/main.cpp:302
 msgid "Select"
 msgstr ""
 
-#: src/main.cpp:351
+#: src/main.cpp:356
 msgid "Output format:"
 msgstr ""
 
-#: src/main.cpp:357
+#: src/main.cpp:362
 msgid "Advanced settings"
 msgstr ""
 
-#: src/main.cpp:373
+#: src/main.cpp:378
 msgid "Convert!"
 msgstr ""
 
-#: src/backends/ffmpeg.cpp:28
+#: src/backends/ffmpeg.cpp:33
 msgid "Framerate:"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:60
+#: src/backends/imagemagick.cpp:59
 msgid "Grayscale"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:63
+#: src/backends/imagemagick.cpp:62
 msgid "Flip horizontally"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:66
+#: src/backends/imagemagick.cpp:65
 msgid "Flip vertically"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:69
+#: src/backends/imagemagick.cpp:68
 msgid "Compression"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:72
+#: src/backends/imagemagick.cpp:71
 msgid "Rotation:"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:74
+#: src/backends/imagemagick.cpp:73
 msgid "Resize (%):"
 msgstr ""
 
-#: src/backends/imagemagick.cpp:76
+#: src/backends/imagemagick.cpp:75
 msgid "Quality:"
 msgstr ""
 
-#: src/backends/pandoc.c:43
+#: src/backends/pandoc.cpp:39
 msgid "Preserve wraps"
 msgstr ""

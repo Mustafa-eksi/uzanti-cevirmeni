@@ -1,4 +1,4 @@
-#include "imagemagick.h"
+#include "imagemagick.hpp"
 #include "backend.hpp"
 #include "gtk/gtkdropdown.h"
 
@@ -32,7 +32,6 @@ enum Result imagemagick_convert_single(const char* in_path, const char* out_path
         return res;
 
     std::string cmd = "convert \""+ (std::string)in_path +"\" "+ imagemagick_parse_settings(settings) +" \""+ (std::string)out_path +"\"";
-    printf("cmd: %s\n", cmd.c_str());
     FILE *im_pipe = popen(cmd.c_str(), "r");
     if (!im_pipe) {
         return UNKNOWN_ERROR;

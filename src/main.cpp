@@ -9,8 +9,6 @@
 #include <stdio.h>
 #include <thread>
 #include "backends/backend.hpp"
-#include "backends/ffmpeg.h"
-#include "backends/pandoc.h"
 #include "cevir.cpp"
 
 GtkWidget *window, *fd, *sf_button, *filepath_label,
@@ -51,11 +49,58 @@ void no_files() {
 	gtk_widget_set_visible(box2, false);
 }
 
+void set_files() {
+	for (auto path : paths) {
+		if (!path) continue;
+		char *ext = get_extension(path);
+		if (!ext) continue;
+		enum ConverterProgram tmp = (enum ConverterProgram) get_converter_from_extension(ext);
+		check_available(&tmp);
+		if (cp == UNSUPPORTED)
+			cp = tmp;
+		else if (cp != tmp) {
+			show_alert(_("Some files don't share the same extension! %s"), path);
+			paths.clear();
+			return;
+		}
+	}
+	
+	GtkStringList *strlist;
+	char* buff[BIG_BUFF] = {};
+	GtkWidget *first_c = gtk_widget_get_first_child(settingsw);
+	while (first_c != NULL) {
+		gtk_grid_remove(GTK_GRID(settingsw), first_c);
+		first_c = gtk_widget_get_first_child(settingsw);
+	}
+	if ((cp & IMAGEMAGICK) != 0) {
+		create_dropdown_list(imagemagick_all, buff);
+		imagemagick_set_settings_widget(settingsw);
+	} else if ((cp & FFMPEG) != 0) {
+		create_dropdown_list(ffmpeg_all, buff);
+		ffmpeg_set_settings_widget(settingsw);
+	} else if ((cp & PANDOC) != 0) {
+		create_dropdown_list(pandoc_all, buff);
+		pandoc_set_settings_widget(settingsw);
+	} else if((cp & LIBREOFFICE) != 0) {
+		create_dropdown_list(libreoffice_all, buff);
+	} else {
+		show_alert(_("Couldn't find any converter program for given files!"), NULL); // ""
+		no_files();
+		return;
+	}
+	
+	strlist = gtk_string_list_new(buff);
+	gtk_drop_down_set_model(GTK_DROP_DOWN(dd), G_LIST_MODEL(strlist));
+	gtk_widget_set_visible(box2, true);
+	gtk_widget_set_visible(convert_button, true);
+	gtk_button_set_label(GTK_BUTTON(sf_button), _("Clear selected files"));
+	gtk_widget_set_visible(scw, true);
+	sync_paths();
+}
+
 void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 {
 	if (response_id == -4) return;
-	char* buff[BIG_BUFF] = {};
-	GtkStringList *strlist;
 
 	// auto files = gtk_file_dialog_open_multiple_finish(fd, res, &err);
 	auto files = gtk_file_chooser_get_files(GTK_FILE_CHOOSER(fd));
@@ -71,46 +116,9 @@ void async_callback(GtkDialog* self, gint response_id, gpointer user_data)
 		auto filepath = g_file_get_path(gfile);
 		//printf("file %ld: %s\n", i, filepath);
 		paths.push_back(filepath);
-
-		char *ext = get_extension(filepath);
-		enum ConverterProgram tmp = (enum ConverterProgram) get_converter_from_extension(ext);
-		check_available(&tmp);
-		if (cp == UNSUPPORTED)
-			cp = tmp;
-		else if (cp != tmp)
-			continue;
 	}
 	paths.push_back(NULL);
-	GtkWidget *first_c = gtk_widget_get_first_child(settingsw);
-	while (first_c != NULL) {
-		gtk_grid_remove(GTK_GRID(settingsw), first_c);
-		first_c = gtk_widget_get_first_child(settingsw);
-	}
-	if ((cp & IMAGEMAGICK) != 0) {
-		create_dropdown_list(imagemagick_all, buff);
-		imagemagick_set_settings_widget(settingsw);
-	} else if ((cp & FFMPEG) != 0) {
-		create_dropdown_list(ffmpeg_all, buff);
-		ffmpeg_set_settings_widget(settingsw);
-	} /*else if((cp & LIBREOFFICE) != 0) { // Disabled due to instability
-		create_dropdown_list(libreoffice_all, buff);
-	}*/ else if ((cp & PANDOC) != 0) {
-		create_dropdown_list(pandoc_all, buff);
-		pandoc_set_settings_widget(settingsw);
-	} else {
-		show_alert(_("Couldn't find any converter program for given files!"), NULL); // ""
-		no_files();
-		return;
-	}
-
-	strlist = gtk_string_list_new(buff);
-	gtk_drop_down_set_model(GTK_DROP_DOWN(dd), G_LIST_MODEL(strlist));
-	gtk_widget_set_visible(box2, true);
-	gtk_widget_set_visible(convert_button, true);
-	gtk_button_set_label(GTK_BUTTON(sf_button), _("Clear selected files"));
-	gtk_widget_set_visible(scw, true);
-	sync_paths();
-
+	set_files();
 	//free(ext);
 }
 
@@ -134,25 +142,22 @@ void convert_clicked(GtkWidget *widget, gpointer data)
 
 	show_alert(_("Process has been started, please check the destination folder"), NULL);
 
-	//printf("-> shit got discared ;(\n");
 	enum Result res = SUCCESS;
 	guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(dd));
 	GtkStringList *model = GTK_STRING_LIST(gtk_drop_down_get_model(GTK_DROP_DOWN(dd)));
-	// TODO: Make this multithreaded.
+
 	const char *ext = gtk_string_list_get_string(model, selected);
 	auto settings = get_settings_helper(cp, settingsw);
 	std::vector<std::thread> ts;
 	for (const auto& path : paths) {
 		if (!path || !ext || !output_folder_path)
 			continue;
-		//ts.push_back();
 		std::thread(convert_helper, (std::string)path, (std::string)ext, (std::string)output_folder_path, cp, settings, &res).detach();
 	}
 	for (auto& t : ts) {
 		t.join();
 		paths.pop_front();
 		sync_paths();
-		printf("-> a conversion ended!\n");
 	}
 	if (paths.empty())
 		no_files();
@@ -304,7 +309,7 @@ void output_folder_clicked(GtkWidget *widget, gpointer data) {
 static void activate(GtkApplication *app, gpointer user_data)
 {
 	window = gtk_application_window_new(app);
-	gtk_window_set_title(GTK_WINDOW(window), "Window");
+	gtk_window_set_title(GTK_WINDOW(window), "Uzanti Cevirmeni");
 	gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 
 	box_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
@@ -373,6 +378,9 @@ static void activate(GtkApplication *app, gpointer user_data)
 		gtk_button_set_label(GTK_BUTTON(convert_button), _("Convert!"));
 		g_signal_connect(convert_button, "clicked", G_CALLBACK(convert_clicked), NULL);
 	gtk_box_append(GTK_BOX(box2), convert_button);
+	
+	if (!paths.empty())
+		set_files();
 
 	gtk_box_append(GTK_BOX(box), box2);
 	gtk_box_append(GTK_BOX(box_main), box);
@@ -382,7 +390,7 @@ static void activate(GtkApplication *app, gpointer user_data)
 		gtk_widget_set_visible(spinner, false);
 	gtk_box_append(GTK_BOX(box_main), spinner);
 	// gtk_stack_set_visible_child_name(GTK_STACK(stack), "main");
-	gtk_window_set_child(GTK_WINDOW(window), box_main);
+	gtk_window_set_child(GTK_WINDOW(window), box_main);	
 	gtk_window_present(GTK_WINDOW(window));
 }
 
@@ -390,6 +398,12 @@ int main(int argc, char **argv)
 {
 	GtkApplication *app;
 	int status;
+	
+	if (argc > 1) {
+		for (size_t i = 1; i < argc; i++) {
+			paths.push_back(argv[i]);
+		}
+	}
 
 	setlocale(LC_ALL,"");
 	bindtextdomain("uzanti-cevirmeni","/usr/share/locale");

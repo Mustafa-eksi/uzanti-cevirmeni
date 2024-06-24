@@ -1,26 +1,20 @@
-#include "pandoc.h"
+#include "pandoc.hpp"
 
 const char *pandoc_cmd_template = "pandoc \"%s\" -o \"%s\"";
 
-void pandoc_parse_settings(char* buffer, size_t buffer_size, struct PandocSettings settings) {
-    //printf("\"%s\"\n", buffer);
-    size_t last_line = 0;
+std::string pandoc_parse_settings(struct PandocSettings settings) {
+    std::string output;
     if (settings.hard_line_breaks) {
-        last_line += sprintf(buffer+last_line, " --wrap=preserve ");
+        output += " --wrap=preserve ";
     }
-    (void) last_line;
-    //printf("\"%s\"\n", buffer);
+    return output;
 }
 
 enum Result pandoc_convert_single(const char* in_path, const char* out_path, struct PandocSettings settings) {
     enum Result res = UNKNOWN_ERROR;
-    char cmd[BIG_BUFF] = {};
-    /* char *cmd = (char*) malloc((strlen(pandoc_cmd_template)-4+strlen(in_path)+strlen(out_path)+1)*sizeof(char));
-     *    if (!cmd)
-     *        return NOT_ENOUGH_MEMORY;*/
-    size_t lines = sprintf(cmd, pandoc_cmd_template, in_path, out_path);
-    pandoc_parse_settings(cmd+lines, BIG_BUFF-lines, settings);
-    FILE *pandoc_pipe = popen(cmd, "r");
+    std::string cmd =  "pandoc \""+(std::string)in_path+"\" -o \""+(std::string)out_path+"\" " + pandoc_parse_settings(settings);
+
+    FILE *pandoc_pipe = popen(cmd.c_str(), "r");
     if (!pandoc_pipe) {
         return UNKNOWN_ERROR;
     }
@@ -37,11 +31,13 @@ enum Result pandoc_convert_single(const char* in_path, const char* out_path, str
     return res;
 }
 
-void pandoc_set_settings_widget(GtkWidget* box) {
+void pandoc_set_settings_widget(GtkWidget* grid) {
+    gtk_grid_insert_column(GTK_GRID(grid), 0);
+    gtk_grid_insert_row(GTK_GRID(grid), 0);
     GtkWidget* wrap = gtk_check_button_new();
     gtk_check_button_set_active(GTK_CHECK_BUTTON(wrap), true);
     gtk_check_button_set_label(GTK_CHECK_BUTTON(wrap), _("Preserve wraps")); // Yeni satırları koru
-    gtk_box_append(GTK_BOX(box), wrap);
+    gtk_grid_attach(GTK_GRID(grid), wrap, 0, 0, 1, 1);
 }
 
 struct PandocSettings pandoc_get_settings(GtkWidget* box) {
