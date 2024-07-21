@@ -3,9 +3,19 @@ using Gtk 4.0;
 Window main_window {
   default-height: 500;
   default-width: 600;
-  Button open_file_button {
-    valign: center;
-    halign: center;
-    label: "Open file";
+  Stack main_stack {
+    StackPage {
+      name: "open_file_button";
+      child: Button open_file_button {
+        name: "abc";
+        valign: center;
+        halign: center;
+        label: "Open file";
+      };
+    }
+    StackPage {
+      name: "file_list";
+      child: ListView file_list {};
+    }
   }
 }
