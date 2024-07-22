@@ -36,13 +36,20 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                 <property name="margin-start">10</property>
                 <property name="margin-bottom">10</property>
                 <child>
-                  <object class="GtkListView" id="file_list"></object>
+                  <object class="GtkScrolledWindow">
+                    <property name="min-content-height">200</property>
+                    <child>
+                      <object class="GtkListView" id="file_list"></object>
+                    </child>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkDropDown" id="convert_dropdown"></object>
                 </child>
                 <child>
-                  <object class="GtkButton" id="convert_button"></object>
+                  <object class="GtkButton" id="convert_button">
+                    <property name="label">Convert</property>
+                  </object>
                 </child>
               </object>
             </property>

@@ -22,10 +22,14 @@ Window main_window {
         margin-end: 10;
         margin-start: 10;
         margin-bottom: 10;
-      	ListView file_list {}
+	ScrolledWindow {
+	  min-content-height: 200;
+	  ListView file_list {}
+	}
         DropDown convert_dropdown {
         }
         Button convert_button {
+	  label: "Convert";
         }
       };
     }
