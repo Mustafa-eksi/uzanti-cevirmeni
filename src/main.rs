@@ -7,7 +7,7 @@ use gtk::glib::{GString, SignalHandlerId};
 use gtk::Window;
 use gtk::{Label, ListItem, ListView, NoSelection, SignalListItemFactory, Stack, StringList, StringObject, Box, gio::File};
 use gtk::{prelude::*, Button, FileDialog, FileFilter, gio::ListStore, Builder};
-use gtk::{glib, glib::clone, Application, ApplicationWindow};
+use gtk::{glib, glib::clone, Application, ApplicationWindow, glib::object::ObjectExt};
 
 const APP_ID: &str = "me.mustafaeksi.uzanti-cevirmeni";
 
@@ -23,10 +23,10 @@ fn main() -> glib::ExitCode {
 }
 
 struct FileList {
-    string_list: Arc<StringList>,
+    string_list: Arc<ListStore>,
     model: Arc<NoSelection>,
     factory: SignalListItemFactory,
-    signals: Arc<Mutex<Vec<SignalHandlerId>>>,
+    signals: Arc<Mutex<Vec<(ListItem, SignalHandlerId)>>>,
     listview: ListView,
 }
 
@@ -34,7 +34,7 @@ impl FileList {
     fn new(lv: ListView) -> FileList {
         let mut fl = FileList {
             listview: lv,
-            string_list: Arc::new(StringList::new(&[])),
+            string_list: Arc::new(ListStore::new::<StringObject>()),
             model: Arc::new(NoSelection::new(None::<StringList>)),
             factory: SignalListItemFactory::new(),
             signals: Arc::new(Mutex::new(Vec::new())),
@@ -94,49 +94,22 @@ impl FileList {
             let mut sig = signals.lock().unwrap();
             let index = item.position() as usize;
             if index >= sig.len() {
-                sig.push(sid);
+                sig.push((item.clone(), sid));
             } else {
-                sig[index] = sid;
-            }
-        }));
-
-        fl.factory.connect_unbind(clone!(
-        #[strong(rename_to = signals)] fl.signals,
-        #[strong(rename_to = strlist)] fl.string_list,
-        move |_, obj| {
-            let item = obj
-                .downcast_ref::<ListItem>()
-                .expect("Needs to be ListItem");
-            let bx = obj
-                .downcast_ref::<ListItem>()
-                .expect("Needs to be ListItem")
-                .child()
-                .and_downcast::<Box>()
-                .expect("The child has to be a `Box`.");
-            let label = bx.first_child()
-                .expect("Can't get first child")
-                .downcast::<Label>()
-                .expect("Can't downcast to Label");
-            let delbut = bx.last_child()
-                .expect("Can't get last child")
-                .downcast::<Button>()
-                .expect("Can't downcast to Button");
-            let mut sig = signals.lock().unwrap();
-            //println!("{sig:?}");
-            let id = item.position() as usize;
-            if id >= sig.len() {
-                println!("{id}/{} {} out of bounds", sig.len(), label.text());
-                return;
-            }
-            delbut.disconnect(sig.remove(id));
-            let mut i = 0;
-            while i < strlist.n_items() {
-                if strlist.string(i) == Some(label.text()) {
-                    println!("Real index: {i}");
+                let bxo = sig[index].0
+                    .downcast_ref::<ListItem>()
+                    .expect("Needs to be ListItem")
+                    .child()
+                    .and_downcast::<Box>();
+                if let Some(bx) = bxo { 
+                    let delbut2 = bx.last_child()
+                        .expect("Can't get last child")
+                        .downcast::<Button>()
+                        .expect("Can't downcast to Button");
+                    delbut2.disconnect(sig.remove(index).1);
                 }
-                i += 1;
+                sig.insert(index, (item.clone(), sid));
             }
-            println!("Deleted a signal handler {}: {}", label.text(), item.position());
         }));
 
         fl.listview.set_factory(Some(&fl.factory));
@@ -146,7 +119,7 @@ impl FileList {
 
     fn add_file(&self, path: String) {
         println!("file: {path}");
-        self.string_list.append(&path);
+        self.string_list.append(&StringObject::new(&path));
     }
 }
 
