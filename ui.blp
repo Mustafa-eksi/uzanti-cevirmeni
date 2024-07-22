@@ -15,7 +15,19 @@ Window main_window {
     }
     StackPage {
       name: "file_list";
-      child: ListView file_list {};
+      child: Box {
+        orientation: vertical;
+        spacing: 5;
+        margin-top: 10;
+        margin-end: 10;
+        margin-start: 10;
+        margin-bottom: 10;
+      	ListView file_list {}
+        DropDown convert_dropdown {
+        }
+        Button convert_button {
+        }
+      };
     }
   }
 }

@@ -28,7 +28,23 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
           <object class="GtkStackPage">
             <property name="name">file_list</property>
             <property name="child">
-              <object class="GtkListView" id="file_list"></object>
+              <object class="GtkBox">
+                <property name="orientation">1</property>
+                <property name="spacing">5</property>
+                <property name="margin-top">10</property>
+                <property name="margin-end">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-bottom">10</property>
+                <child>
+                  <object class="GtkListView" id="file_list"></object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="convert_dropdown"></object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="convert_button"></object>
+                </child>
+              </object>
             </property>
           </object>
         </child>

@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use gtk::gio::builders::ListStoreBuilder;
 use gtk::gio::{Cancellable, ListModel};
 use gtk::glib::{GString, SignalHandlerId};
-use gtk::Window;
+use gtk::{DropDown, Window};
 use gtk::{Label, ListItem, ListView, NoSelection, SignalListItemFactory, Stack, StringList, StringObject, Box, gio::File};
 use gtk::{prelude::*, Button, FileDialog, FileFilter, gio::ListStore, Builder};
 use gtk::{glib, glib::clone, Application, ApplicationWindow, glib::object::ObjectExt};
@@ -31,7 +31,7 @@ struct FileList {
 }
 
 impl FileList {
-    fn new(lv: ListView) -> FileList {
+    fn new(lv: ListView, main_stack: Arc<Stack>) -> FileList {
         let mut fl = FileList {
             listview: lv,
             string_list: Arc::new(ListStore::new::<StringObject>()),
@@ -44,13 +44,18 @@ impl FileList {
             let bx = Box::builder()
                 .orientation(gtk::Orientation::Horizontal)
                 .spacing(5)
+                .hexpand(true)
                 .build();
             let lbl = Label::new(None);
             bx.append(&lbl);
+
             let delbut = Button::builder()
                 .label("-")
+                .halign(gtk::Align::End)
+                .hexpand(true)
                 .build();
             bx.append(&delbut);
+
             obj
                 .downcast_ref::<ListItem>()
                 .expect("Needs to be ListItem")
@@ -86,10 +91,15 @@ impl FileList {
             let sid = delbut.connect_clicked(clone!(
             #[strong] sl,
             #[strong] item,
+            #[strong] main_stack,
+            #[strong(rename_to = sigs)] signals,
             move |_| {
                 let item_index = item.position();
-                //println!("I'm deleting {item_index}!!!");
                 sl.remove(item_index);
+                if sl.n_items() == 0 {
+                    main_stack.set_visible_child_name("open_file_button");
+                    sigs.lock().unwrap().clear();
+                }
             }));
             let mut sig = signals.lock().unwrap();
             let index = item.position() as usize;
@@ -139,7 +149,9 @@ fn build_ui(app: &Application) {
     let main_stack = Arc::new(b.object::<Stack>("main_stack").expect("Stack not found"));
 
     let file_list = b.object::<ListView>("file_list").expect("file_list not found");
-    let fl: Arc<FileList> = Arc::new(FileList::new(file_list));
+    let fl: Arc<FileList> = Arc::new(FileList::new(file_list, main_stack.clone()));
+
+    let dd = Arc::new(b.object::<DropDown>("convert_dropdown"));
 
     // Create a window and set the title
     let window = Arc::new(b.object::<Window>("main_window")
