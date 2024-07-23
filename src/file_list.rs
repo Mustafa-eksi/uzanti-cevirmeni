@@ -113,4 +113,9 @@ impl FileList {
     pub fn add_file(&self, path: String) {
         self.string_list.append(&StringObject::new(&path));
     }
+
+    pub fn clear(&self) {
+        self.string_list.remove_all();
+        self.signals.lock().unwrap().clear();
+    }
 }

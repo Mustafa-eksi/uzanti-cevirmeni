@@ -16,10 +16,37 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
             <property name="name">open_file_button</property>
             <property name="child">
               <object class="GtkButton" id="open_file_button">
-                <property name="name">abc</property>
                 <property name="valign">3</property>
                 <property name="halign">3</property>
                 <property name="label">Open file</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkStackPage">
+            <property name="name">loading_page</property>
+            <property name="child">
+              <object class="GtkBox" id="loading_page_box">
+                <property name="valign">3</property>
+                <property name="halign">3</property>
+                <property name="orientation">1</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label">Converting files...</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinner">
+                    <property name="spinning">true</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="convertion_cancel_button">
+                    <property name="label">Cancel</property>
+                  </object>
+                </child>
               </object>
             </property>
           </object>
@@ -38,22 +65,31 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                 <child>
                   <object class="GtkScrolledWindow">
                     <property name="min-content-height">200</property>
+                    <property name="margin-bottom">20</property>
                     <child>
                       <object class="GtkListView" id="file_list"></object>
                     </child>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkDropDown" id="convert_dropdown"></object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="select_output_folder">
-                    <property name="label">Seletc output folder</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="convert_button">
-                    <property name="label">Convert</property>
+                  <object class="GtkBox">
+                    <property name="margin-end">30</property>
+                    <property name="margin-start">30</property>
+                    <property name="spacing">10</property>
+                    <property name="orientation">1</property>
+                    <child>
+                      <object class="GtkDropDown" id="convert_dropdown"></object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="select_output_folder">
+                        <property name="label">Seletc output folder</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="convert_button">
+                        <property name="label">Convert</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

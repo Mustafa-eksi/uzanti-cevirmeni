@@ -3,6 +3,8 @@ use fragile::Fragile;
 use gtk::{gio::ListStore, glib::idle_add_once, prelude::{Cast, CastNone, ListModelExt}, Stack, StringObject};
 use gtk::glib::{idle_add, GString, ControlFlow};
 
+use crate::ConvertionUI;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ConverterProgram {
     ImageMagick,
@@ -10,12 +12,69 @@ pub enum ConverterProgram {
     Pandoc
 }
 
-pub const EXT_TO_CONVERTER: [(&str, ConverterProgram); 1] = [
+pub const EXT_TO_CONVERTER: [(&str, ConverterProgram); 25] = [
+// IMAGEMAGICK
     ("png", ConverterProgram::ImageMagick),
+    ("gif", ConverterProgram::ImageMagick),
+    ("webp", ConverterProgram::ImageMagick),
+    ("jpg", ConverterProgram::ImageMagick),
+    ("jpeg", ConverterProgram::ImageMagick),
+    ("svg", ConverterProgram::ImageMagick),
+    ("xcf", ConverterProgram::ImageMagick),
+// FFMPEG
+    ("webm", ConverterProgram::Ffmpeg),
+    ("gif", ConverterProgram::Ffmpeg),
+    ("mp4", ConverterProgram::Ffmpeg),
+    ("mp3", ConverterProgram::Ffmpeg),
+    ("opus", ConverterProgram::Ffmpeg),
+    ("avi", ConverterProgram::Ffmpeg),
+    ("mov", ConverterProgram::Ffmpeg),
+// PANDOC
+    ("epub", ConverterProgram::Pandoc),
+    ("html", ConverterProgram::Pandoc),
+    ("json", ConverterProgram::Pandoc),
+    ("tex", ConverterProgram::Pandoc),
+    ("md", ConverterProgram::Pandoc),
+    ("odt", ConverterProgram::Pandoc),
+    ("odf", ConverterProgram::Pandoc),
+    ("pdf", ConverterProgram::Pandoc),
+    ("docx", ConverterProgram::Pandoc),
+    ("doc", ConverterProgram::Pandoc),
+    ("txt", ConverterProgram::Pandoc),
 ];
 
-pub const IMAGEMAGICK_EXTS: [&str; 1] = [
-    "jpg"
+pub const IMAGEMAGICK_EXTS: [&str; 7] = [
+    "png", 
+    "gif", 
+    "webp", 
+    "jpg", 
+    "jpeg", 
+    "svg", 
+    "xcf", 
+];
+
+pub const FFMPEG_EXTS: [&str; 7] = [
+    "webm", 
+    "gif", 
+    "mp4", 
+    "mp3", 
+    "opus", 
+    "avi", 
+    "mov", 
+];
+
+pub const PANDOC_EXTS: [&str; 11] = [
+    "epub", 
+    "html", 
+    "json", 
+    "tex", 
+    "md", 
+    "odt", 
+    "odf", 
+    "pdf", 
+    "docx", 
+    "doc", 
+    "txt", 
 ];
 
 pub fn ext_to_converter(ext: &str) -> Option<ConverterProgram> {
@@ -39,14 +98,15 @@ pub fn get_converter_program(files: &ListStore) -> Option<ConverterProgram> {
             .and_downcast::<StringObject>()
             .expect("File isn't a StringObject")
             .string();
+        println!("{fp}");
         let ext = fp.split(".").last().expect("There's no extension?");
         let files_converter = ext_to_converter(ext);
+        if !files_converter.is_some() {
+            return None;
+        }
         if !current_converter.is_some() {
             current_converter = files_converter;
             continue;
-        }
-        if !files_converter.is_some() {
-            return None;
         }
         if files_converter.unwrap() != current_converter.unwrap() {
             return None;
@@ -65,14 +125,28 @@ pub enum ConvertionCom {
 pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> std::process::Child {
     let (_folder, filename) = file.rsplit_once("/").expect("This is not a valid path");
     let output_path = format!("{output_folder}/{filename}");
-    return Command::new("magick")
-        .arg(file.clone())
-        .arg(output_path)
-        .spawn()
-        .expect("Can't spawn child");
+    match cp {
+        ConverterProgram::ImageMagick => Command::new("magick")
+            .arg(file.clone())
+            .arg(output_path)
+            .spawn()
+            .expect("Can't spawn child (imagemagick)"),
+        ConverterProgram::Ffmpeg => Command::new("ffmpeg")
+            .arg("-i")
+            .arg(file.clone())
+            .arg(output_path)
+            .spawn()
+            .expect("Can't spawn child (ffmpeg)"),
+        ConverterProgram::Pandoc => Command::new("pandoc")
+            .arg(file.clone())
+            .arg("-o")
+            .arg(output_path)
+            .spawn()
+            .expect("Can't spawn child (pandoc)")
+    }
 }
 
-pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, stack: Fragile<Arc<Stack>>) {
+pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>) {
     let mut i = 0;
     let ls = files.get();
     let mut children: Vec<std::process::Child> = Vec::new();
@@ -88,7 +162,7 @@ pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, c
             let _ = ch.wait();
         }
         idle_add_once(move || {
-            stack.get().set_visible_child_name("open_file_button")
+            ui.get().finished();
         });
     });
 }

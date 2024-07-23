@@ -7,10 +7,27 @@ Window main_window {
     StackPage {
       name: "open_file_button";
       child: Button open_file_button {
-        name: "abc";
         valign: center;
         halign: center;
         label: "Open file";
+      };
+    }
+    StackPage {
+      name: "loading_page";
+      child: Box loading_page_box {
+        valign: center;
+        halign: center;
+	orientation: vertical;
+	spacing: 10;
+	Label {
+	  label: "Converting files...";
+	}
+	Spinner {
+	  spinning: true;
+	}
+	Button convertion_cancel_button {
+	  label: "Cancel";
+	}
       };
     }
     StackPage {
@@ -24,16 +41,23 @@ Window main_window {
         margin-bottom: 10;
 	ScrolledWindow {
 	  min-content-height: 200;
+	  margin-bottom: 20;
 	  ListView file_list {}
 	}
-        DropDown convert_dropdown {
-        }
-	Button select_output_folder {
-	  label: "Seletc output folder";
+	Box {
+          margin-end: 30;
+          margin-start: 30;
+	  spacing: 10;
+	  orientation: vertical;
+          DropDown convert_dropdown {
+          }
+          Button select_output_folder {
+            label: "Seletc output folder";
+          }
+          Button convert_button {
+            label: "Convert";
+          }
 	}
-        Button convert_button {
-	  label: "Convert";
-        }
       };
     }
   }
