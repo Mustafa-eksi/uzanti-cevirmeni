@@ -47,6 +47,11 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                   <object class="GtkDropDown" id="convert_dropdown"></object>
                 </child>
                 <child>
+                  <object class="GtkButton" id="select_output_folder">
+                    <property name="label">Seletc output folder</property>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkButton" id="convert_button">
                     <property name="label">Convert</property>
                   </object>

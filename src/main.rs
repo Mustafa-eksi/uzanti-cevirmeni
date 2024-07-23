@@ -1,27 +1,28 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
+use std::time::Duration;
+use std::cell::RefCell;
+use fragile::Fragile;
 use gtk::gio::{Cancellable, File};
 use gtk::{NoSelection, SignalListItemFactory, StringList, StringObject};
 use gtk::{
     prelude::*, Button, FileDialog, FileFilter, gio::ListStore, Builder,
     Application, DropDown, Window, ListView, Stack, Box, Label, ListItem
 };
-use gtk::glib::{clone, ExitCode};
+use gtk::glib::{clone, ExitCode, timeout_add, ControlFlow};
 
 mod file_list;
 use file_list::FileList;
 
 mod convert;
-use convert::{get_converter_program, ConverterProgram, IMAGEMAGICK_EXTS};
+use convert::{get_converter_program, ConverterProgram, ConvertionCom, IMAGEMAGICK_EXTS, convert_multiple};
 
 const APP_ID: &str = "me.mustafaeksi.uzanti-cevirmeni";
 
 fn main() -> ExitCode {
     // Create a new application
     let app = Application::builder().application_id(APP_ID).build();
-
     // Connect to "activate" signal of `app`
     app.connect_activate(build_ui);
-
     // Run the application
     app.run()
 }
@@ -79,17 +80,42 @@ fn build_ui(app: &Application) {
     dd.set_model(Some(&dropdown_model));
 
     let cp: Arc<Mutex<Option<ConverterProgram>>> = Arc::new(Mutex::new(None));
-
+    let output_folder: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    let fragstack = Fragile::new(main_stack.clone());
     convert_button.connect_clicked(clone!(
     #[strong(rename_to = files)] fl.string_list,
     #[strong] cp,
+    #[strong] fragstack,
+    #[strong] output_folder,
     move |_| {
         println!("{:?}", cp.lock().unwrap().unwrap());
+        let out = output_folder.lock().unwrap();
+        convert_multiple(
+            Fragile::new(files.clone()),
+            out.clone(),
+            cp.lock().unwrap().expect("No convertion program"),
+            fragstack.clone());
     }));
 
     // Create a window and set the title
     let window = Arc::new(b.object::<Window>("main_window")
         .expect("Couldn't find window"));
+
+    let output_button = b.object::<Button>("select_output_folder").unwrap();
+    let output_file_dialog = FileDialog::new();
+    output_button.connect_clicked(clone!(
+    #[strong] window,
+    #[strong] output_folder,
+    move |_| {
+        let cancel = Cancellable::new();
+        output_file_dialog.select_folder(Some(window.as_ref()), Some(&cancel), clone!(
+        #[strong] output_folder,
+        move |res| {
+            let file = res.unwrap();
+            let mut out = output_folder.lock().unwrap();
+            *out = String::from(file.path().expect("empty folder path").to_str().unwrap());
+        }));
+    }));
 
     button.connect_clicked(clone!(
     #[strong] window,
@@ -139,3 +165,4 @@ fn build_ui(app: &Application) {
     window.set_application(Some(app));
     window.present();
 }
+

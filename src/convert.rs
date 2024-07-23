@@ -1,5 +1,6 @@
-use std::{process::Command, sync::{Arc, Mutex}, thread, time::Duration};
-use gtk::{gio::ListStore, prelude::{CastNone, ListModelExt}, Stack, StringObject};
+use std::{fmt::format, process::{Child, Command}, sync::{mpsc::Sender, Arc, Mutex}, thread, time::Duration};
+use fragile::Fragile;
+use gtk::{gio::ListStore, glib::idle_add_once, prelude::{Cast, CastNone, ListModelExt}, Stack, StringObject};
 use gtk::glib::{idle_add, GString, ControlFlow};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -55,23 +56,39 @@ pub fn get_converter_program(files: &ListStore) -> Option<ConverterProgram> {
     current_converter
 }
 
+pub enum ConvertionCom {
+    Ongoing(usize),
+    Success,
+    Failure
+}
 
-pub fn convert(file: GString, cp: ConverterProgram, main_stack: Arc<Mutex<Stack>>) -> Result<(), ()> {
-    let child = Command::new("magick")
-        .arg(file)
-        .arg("~/Desktop/deneme.jpg")
+pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> std::process::Child {
+    let (_folder, filename) = file.rsplit_once("/").expect("This is not a valid path");
+    let output_path = format!("{output_folder}/{filename}");
+    return Command::new("magick")
+        .arg(file.clone())
+        .arg(output_path)
         .spawn()
         .expect("Can't spawn child");
-    // TODO: https://stackoverflow.com/questions/66510406/gtk-rs-how-to-update-view-from-another-thread
-   // let h = thread::spawn(move || {
-   //     main_stack;
-   //     let output = child.wait_with_output();
-   //     idle_add(move || {
-   //         main_stack;
-   //         //.lock().unwrap()
-   //         //    .set_visible_child_name("open_file_button");
-   //         ControlFlow::Continue
-   //     })
-   // });
-    Ok(())
+}
+
+pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, stack: Fragile<Arc<Stack>>) {
+    let mut i = 0;
+    let ls = files.get();
+    let mut children: Vec<std::process::Child> = Vec::new();
+    while i < ls.n_items() {
+        children.push(convert(
+            ls.item(i).unwrap().downcast::<StringObject>().unwrap().string(),
+            output_folder.clone(),
+            cp));
+        i += 1;
+    }
+    std::thread::spawn(move || {
+        for mut ch in children {
+            let _ = ch.wait();
+        }
+        idle_add_once(move || {
+            stack.get().set_visible_child_name("open_file_button")
+        });
+    });
 }
