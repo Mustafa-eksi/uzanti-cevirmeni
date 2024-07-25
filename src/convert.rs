@@ -79,7 +79,7 @@ pub const PANDOC_EXTS: [&str; 11] = [
 
 pub fn ext_to_converter(ext: &str) -> Option<ConverterProgram> {
     for t in EXT_TO_CONVERTER {
-        if t.0 == ext {
+        if t.0 == ext.to_lowercase() {
             return Some(t.1);
         }
     }
@@ -146,7 +146,7 @@ pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> st
     }
 }
 
-pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>) {
+pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>, cancel: Arc<Mutex<bool>>) {
     let mut i = 0;
     let ls = files.get();
     let mut children: Vec<std::process::Child> = Vec::new();
@@ -159,6 +159,9 @@ pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, c
     }
     std::thread::spawn(move || {
         for mut ch in children {
+            if *cancel.lock().unwrap() {
+                let _ = ch.kill();
+            }
             let _ = ch.wait();
         }
         idle_add_once(move || {

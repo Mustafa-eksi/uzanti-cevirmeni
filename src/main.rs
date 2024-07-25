@@ -38,6 +38,8 @@ struct ConvertionUI {
     dropdown_model: NoSelection,
     output_folder: Arc<Mutex<String>>,
     stack: Arc<Stack>,
+    cancel: Arc<Mutex<bool>>,
+    cancel_button: Button,
 }
 
 impl ConvertionUI {
@@ -56,7 +58,15 @@ impl ConvertionUI {
             dropdown_model: NoSelection::new(None::<ListStore>),
             output_folder: Arc::new(Mutex::new(String::new())),
             stack: main_stack.clone(),
+            cancel: Arc::new(Mutex::new(false)),
+            cancel_button: b.object::<Button>("convertion_cancel_button").unwrap(),
         });
+
+        cui.cancel_button.connect_clicked(clone!(
+        #[strong(rename_to = cancel)] cui.cancel,
+        move |_| {
+            *cancel.lock().unwrap() = true;            
+        }));
 
         cui.dropdown_factory.connect_setup(|_, obj| {
             let lbl = Label::new(None);
@@ -91,6 +101,7 @@ impl ConvertionUI {
         #[strong(rename_to = cp)] cui.cp,
         #[strong] frag,
         #[strong(rename_to = output_folder)] cui.output_folder,
+        #[strong(rename_to = cancel)] cui.cancel,
         #[strong] main_stack,
         move |_| {
             println!("{:?}", cp.lock().unwrap().unwrap());
@@ -99,9 +110,11 @@ impl ConvertionUI {
                 Fragile::new(files.clone()),
                 out.clone(),
                 cp.lock().unwrap().expect("No convertion program"),
-                frag.clone());
+                frag.clone(),
+                cancel.clone());
             main_stack.set_visible_child_name("loading_page");
         }));
+
         cui.output_button.connect_clicked(clone!(
         #[strong] window,
         #[strong(rename_to = output_folder)] cui.output_folder,
@@ -164,8 +177,10 @@ impl ConvertionUI {
         self.output_folder.lock().unwrap().clear();
         *self.cp.lock().unwrap() = None;
         self.dropdown_stringlist.remove_all();
+        *self.cancel.lock().unwrap() = false;
     }
 }
+
 
 fn build_ui(app: &Application) {
     let b = Builder::from_file("./ui.ui");
@@ -173,16 +188,37 @@ fn build_ui(app: &Application) {
         .expect("Couldn't find button");
 
     let lm = ListStore::new::<FileFilter>();
-    let ff = FileFilter::new();
+    let ff_i = FileFilter::new();
+    ff_i.set_name(Some("Image files"));
+    let ff_p = FileFilter::new();
+    ff_p.set_name(Some("Document files"));
+    let ff_f = FileFilter::new();
+    ff_f.set_name(Some("Video/Audio files"));
     // TODO: add support for seperate file filters
-    let mut suffixes = String::new();
-    for (suf, _program) in EXT_TO_CONVERTER {
+    let mut suffixes_i = String::new();
+    let mut suffixes_p = String::new();
+    let mut suffixes_f = String::new();
+    for (suf, program) in EXT_TO_CONVERTER {
         if suf != "" {
-            suffixes = format!("{suffixes} *.{suf}");
+            match program {
+                ConverterProgram::ImageMagick => {
+                    suffixes_i = format!("{suffixes_i} *.{suf}");
+                },
+                ConverterProgram::Pandoc => {
+                    suffixes_p = format!("{suffixes_p} *.{suf}");
+                },
+                ConverterProgram::Ffmpeg => {
+                    suffixes_f = format!("{suffixes_f} *.{suf}");
+                },
+            }
         }
     }
-    ff.add_suffix(&suffixes);
-    lm.append(&ff);
+    ff_i.add_suffix(&suffixes_i);
+    ff_f.add_suffix(&suffixes_f);
+    ff_p.add_suffix(&suffixes_p);
+    lm.append(&ff_i);
+    lm.append(&ff_f);
+    lm.append(&ff_p);
     let cc = FileDialog::builder()
         .filters(&lm)
         .build();
