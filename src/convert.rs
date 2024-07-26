@@ -1,7 +1,7 @@
-use std::{fmt::format, process::{Child, Command}, sync::{mpsc::Sender, Arc, Mutex}, thread, time::Duration};
+use std::{process::Command, sync::{Arc, Mutex}};
 use fragile::Fragile;
-use gtk::{gio::ListStore, glib::idle_add_once, prelude::{Cast, CastNone, ListModelExt}, Stack, StringObject};
-use gtk::glib::{idle_add, GString, ControlFlow};
+use gtk::{gio::ListStore, glib::idle_add_once, prelude::{Cast, CastNone, ListModelExt}, StringObject};
+use gtk::glib::GString;
 
 use crate::ConvertionUI;
 
@@ -116,12 +116,6 @@ pub fn get_converter_program(files: &ListStore) -> Option<ConverterProgram> {
     current_converter
 }
 
-pub enum ConvertionCom {
-    Ongoing(usize),
-    Success,
-    Failure
-}
-
 pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> std::process::Child {
     let (_folder, filename) = file.rsplit_once("/").expect("This is not a valid path");
     let output_path = format!("{output_folder}/{filename}");
@@ -146,7 +140,8 @@ pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> st
     }
 }
 
-pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>, cancel: Arc<Mutex<bool>>) {
+pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>, cancel: Arc<Mutex<bool>>,
+    cc: Arc<Mutex<Option<u32>>>) {
     let mut i = 0;
     let ls = files.get();
     let mut children: Vec<std::process::Child> = Vec::new();
@@ -161,6 +156,10 @@ pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, c
         for mut ch in children {
             if *cancel.lock().unwrap() {
                 let _ = ch.kill();
+            }
+            {
+                let mut cchild = cc.lock().unwrap();
+                *cchild = Some(ch.id());
             }
             let _ = ch.wait();
         }

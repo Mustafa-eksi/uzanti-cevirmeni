@@ -78,11 +78,16 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                     <property name="spacing">10</property>
                     <property name="orientation">1</property>
                     <child>
+                      <object class="GtkButton" id="clear_all">
+                        <property name="label">Clear All Files</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkDropDown" id="convert_dropdown"></object>
                     </child>
                     <child>
                       <object class="GtkButton" id="select_output_folder">
-                        <property name="label">Seletc output folder</property>
+                        <property name="label">Select output folder</property>
                       </object>
                     </child>
                     <child>

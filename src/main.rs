@@ -1,19 +1,20 @@
-use std::sync::{Arc, Mutex, mpsc};
+use std::process::Command;
+use std::sync::{Arc, Mutex};
 use fragile::Fragile;
 use gtk::gio::{Cancellable, File, ListModel};
-use gtk::{NoSelection, SignalListItemFactory, StringList, StringObject};
+use gtk::{NoSelection, SignalListItemFactory, StringObject};
 use gtk::{
     prelude::*, Button, FileDialog, FileFilter, gio::ListStore, Builder,
-    Application, DropDown, Window, ListView, Stack, Box, Label, ListItem,
+    Application, DropDown, Window, ListView, Stack, Label, ListItem,
     AlertDialog,
 };
-use gtk::glib::{clone, ExitCode, timeout_add, ControlFlow};
+use gtk::glib::{clone, ExitCode};
 
 mod file_list;
 use file_list::FileList;
 
 mod convert;
-use convert::{convert_multiple, get_converter_program, ConverterProgram, ConvertionCom, EXT_TO_CONVERTER, FFMPEG_EXTS, IMAGEMAGICK_EXTS, PANDOC_EXTS};
+use convert::{convert_multiple, get_converter_program, ConverterProgram, EXT_TO_CONVERTER, FFMPEG_EXTS, IMAGEMAGICK_EXTS, PANDOC_EXTS};
 
 const APP_ID: &str = "me.mustafaeksi.uzanti-cevirmeni";
 
@@ -40,6 +41,8 @@ struct ConvertionUI {
     stack: Arc<Stack>,
     cancel: Arc<Mutex<bool>>,
     cancel_button: Button,
+    clear_button: Button,
+    current_child: Arc<Mutex<Option<u32>>>,
 }
 
 impl ConvertionUI {
@@ -60,11 +63,24 @@ impl ConvertionUI {
             stack: main_stack.clone(),
             cancel: Arc::new(Mutex::new(false)),
             cancel_button: b.object::<Button>("convertion_cancel_button").unwrap(),
+            clear_button: b.object::<Button>("clear_all").unwrap(),
+            current_child: Arc::new(Mutex::new(None)),
         });
+
+        cui.clear_button.connect_clicked(clone!(
+        #[strong] cui,
+        move |_| {
+            cui.finished();
+        }));
 
         cui.cancel_button.connect_clicked(clone!(
         #[strong(rename_to = cancel)] cui.cancel,
+        #[strong(rename_to = cc)] cui.current_child,
         move |_| {
+            println!("kill {}", cc.lock().unwrap().unwrap());
+            let _ = Command::new("kill")
+                .arg(format!("{}", cc.lock().unwrap().unwrap()))
+                .spawn();
             *cancel.lock().unwrap() = true;            
         }));
 
@@ -102,6 +118,7 @@ impl ConvertionUI {
         #[strong] frag,
         #[strong(rename_to = output_folder)] cui.output_folder,
         #[strong(rename_to = cancel)] cui.cancel,
+        #[strong(rename_to = current_child)] cui.current_child,
         #[strong] main_stack,
         move |_| {
             println!("{:?}", cp.lock().unwrap().unwrap());
@@ -111,7 +128,8 @@ impl ConvertionUI {
                 out.clone(),
                 cp.lock().unwrap().expect("No convertion program"),
                 frag.clone(),
-                cancel.clone());
+                cancel.clone(),
+                current_child.clone());
             main_stack.set_visible_child_name("loading_page");
         }));
 
