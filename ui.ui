@@ -104,4 +104,7 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
       </object>
     </child>
   </object>
+  <object class="GtkAlertDialog" id="no_converter_found">
+    <property name="message">Couldn't find suitable converter program</property>
+  </object>
 </interface>

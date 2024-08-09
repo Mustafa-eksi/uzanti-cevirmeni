@@ -1,5 +1,7 @@
+use std::env;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use std::path::Path;
 use fragile::Fragile;
 use gtk::gio::{Cancellable, File, ListModel};
 use gtk::{NoSelection, SignalListItemFactory, StringObject};
@@ -24,7 +26,8 @@ fn main() -> ExitCode {
     // Connect to "activate" signal of `app`
     app.connect_activate(build_ui);
     // Run the application
-    app.run()
+    let arg: Vec<String> = Vec::new();
+    app.run_with_args(arg.as_slice())
 }
 
 struct ConvertionUI {
@@ -77,7 +80,6 @@ impl ConvertionUI {
         #[strong(rename_to = cancel)] cui.cancel,
         #[strong(rename_to = cc)] cui.current_child,
         move |_| {
-            println!("kill {}", cc.lock().unwrap().unwrap());
             let _ = Command::new("kill")
                 .arg(format!("{}", cc.lock().unwrap().unwrap()))
                 .spawn();
@@ -119,14 +121,15 @@ impl ConvertionUI {
         #[strong(rename_to = output_folder)] cui.output_folder,
         #[strong(rename_to = cancel)] cui.cancel,
         #[strong(rename_to = current_child)] cui.current_child,
+        #[strong(rename_to = dd)] cui.dd,
         #[strong] main_stack,
         move |_| {
-            println!("{:?}", cp.lock().unwrap().unwrap());
             let out = output_folder.lock().unwrap();
             convert_multiple(
                 Fragile::new(files.clone()),
                 out.clone(),
                 cp.lock().unwrap().expect("No convertion program"),
+                dd.selected() as usize,
                 frag.clone(),
                 cancel.clone(),
                 current_child.clone());
@@ -147,6 +150,17 @@ impl ConvertionUI {
                 *out = String::from(file.path().expect("empty folder path").to_str().unwrap());
             }));
         }));
+        let mut argument_files: Vec<String> = env::args().collect();
+        argument_files.remove(0);
+        if argument_files.len() != 0 {
+            let mut stlist = ListStore::new::<StringObject>();
+            for f in argument_files {
+                stlist.append(&StringObject::new(&f));
+            }
+            cui.open_files(stlist.into());
+            main_stack.set_visible_child_name("file_list");
+        }
+
         cui
     }
 
@@ -156,9 +170,13 @@ impl ConvertionUI {
         while i < files.n_items() {
             let b = files.item(i).expect("Couldn't iterate through files");
             let file = b
-                .downcast_ref::<File>()
-                .expect("Couldn't downcast to File");
-            self.fl.add_file(String::from(file.path().expect("Can't get path").to_str().unwrap()));
+                .downcast_ref::<File>();
+            if !file.is_some() {
+                let arg = b.downcast_ref::<StringObject>().unwrap();
+                self.fl.add_file(arg.string().to_string());
+            } else {
+                self.fl.add_file(String::from(file.unwrap().path().expect("Can't get path").to_str().unwrap()));
+            }
             i += 1;
         }
         let conprog = get_converter_program(self.fl.string_list.as_ref());
@@ -201,7 +219,7 @@ impl ConvertionUI {
 
 
 fn build_ui(app: &Application) {
-    let b = Builder::from_file("./ui.ui");
+    let b = Builder::from_file("/usr/share/uzanti-cevirmeni/ui.ui");
     let button = b.object::<Button>("open_file_button")
         .expect("Couldn't find button");
 
@@ -243,6 +261,7 @@ fn build_ui(app: &Application) {
 
     let main_stack = Arc::new(b.object::<Stack>("main_stack").expect("Stack not found"));
 
+    let alert = Arc::new(b.object::<AlertDialog>("no_converter_found").unwrap());
     // Create a window and set the title
     let window = Arc::new(b.object::<Window>("main_window")
         .expect("Couldn't find window"));
@@ -253,13 +272,14 @@ fn build_ui(app: &Application) {
     #[strong] window,
     #[strong] main_stack,
     #[strong] cui,
+    #[strong] alert,
     move |_| {
         let cancel = Cancellable::new();
-        println!("Pressed button!");
         cc.open_multiple(Some(window.as_ref()), Some(&cancel), clone!(
             #[strong] main_stack,
             #[strong] window,
             #[strong] cui,
+            #[strong] alert,
             move |res| {
                 if res.is_err() {
                     return;
@@ -267,13 +287,7 @@ fn build_ui(app: &Application) {
                 let r = cui.lock().unwrap().open_files(res.unwrap());
                 match r {
                     Ok(_) => main_stack.set_visible_child_name("file_list"),
-                    Err(_) => {
-                        let alert = AlertDialog::builder()
-                            .message("Couldn't find suitable converter program")
-                            .buttons(["Ok"])
-                            .build();
-                        alert.choose(Some(window.as_ref()), Some(&Cancellable::new()), move |_| {});
-                    }
+                    Err(_) => alert.choose(Some(window.as_ref()), Some(&Cancellable::new()), move |_| {}),
                 }
             }
         ));

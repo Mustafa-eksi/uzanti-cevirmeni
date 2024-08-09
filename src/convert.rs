@@ -98,7 +98,6 @@ pub fn get_converter_program(files: &ListStore) -> Option<ConverterProgram> {
             .and_downcast::<StringObject>()
             .expect("File isn't a StringObject")
             .string();
-        println!("{fp}");
         let ext = fp.split(".").last().expect("There's no extension?");
         let files_converter = ext_to_converter(ext);
         if !files_converter.is_some() {
@@ -116,31 +115,32 @@ pub fn get_converter_program(files: &ListStore) -> Option<ConverterProgram> {
     current_converter
 }
 
-pub fn convert(file: GString, output_folder: String, cp: ConverterProgram) -> std::process::Child {
+pub fn convert(file: GString, output_file: String, cp: ConverterProgram, ext: usize) -> std::process::Child {
     let (_folder, filename) = file.rsplit_once("/").expect("This is not a valid path");
-    let output_path = format!("{output_folder}/{filename}");
+    let (realfilename, _ext) = filename.rsplit_once(".").expect("This is not a valid path");
+    let output_path = format!("{output_file}/{realfilename}");
     match cp {
         ConverterProgram::ImageMagick => Command::new("magick")
             .arg(file.clone())
-            .arg(output_path)
+            .arg(format!("{output_path}.{}", IMAGEMAGICK_EXTS[ext]))
             .spawn()
             .expect("Can't spawn child (imagemagick)"),
         ConverterProgram::Ffmpeg => Command::new("ffmpeg")
             .arg("-i")
             .arg(file.clone())
-            .arg(output_path)
+            .arg(format!("{output_path}.{}", FFMPEG_EXTS[ext]))
             .spawn()
             .expect("Can't spawn child (ffmpeg)"),
         ConverterProgram::Pandoc => Command::new("pandoc")
             .arg(file.clone())
             .arg("-o")
-            .arg(output_path)
+            .arg(format!("{output_path}.{}", PANDOC_EXTS[ext]))
             .spawn()
             .expect("Can't spawn child (pandoc)")
     }
 }
 
-pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ui: Fragile<Arc<ConvertionUI>>, cancel: Arc<Mutex<bool>>,
+pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, cp: ConverterProgram, ext: usize, ui: Fragile<Arc<ConvertionUI>>, cancel: Arc<Mutex<bool>>,
     cc: Arc<Mutex<Option<u32>>>) {
     let mut i = 0;
     let ls = files.get();
@@ -149,7 +149,8 @@ pub fn convert_multiple(files: Fragile<Arc<ListStore>>, output_folder: String, c
         children.push(convert(
             ls.item(i).unwrap().downcast::<StringObject>().unwrap().string(),
             output_folder.clone(),
-            cp));
+            cp,
+            ext));
         i += 1;
     }
     std::thread::spawn(move || {
